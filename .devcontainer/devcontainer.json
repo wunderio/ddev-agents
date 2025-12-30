@@ -1,7 +1,21 @@
 {
   "name": "Wunder.io Agents Workspace",
+  "dockerComposeFile": [
+    "../.ddev/.ddev-docker-compose-full.yaml"
+  ],
   "service": "agents",
   "workspaceFolder": "/workspace",
+  "shutdownAction": "none",
+  "initializeCommand": "ddev start",
+  "features": {
+    "ghcr.io/devcontainers/features/node:1": {},
+    "ghcr.io/devcontainers/features/github-cli:1": {},
+    "ghcr.io/devcontainers/features/git:1": {},
+    "ghcr.io/devcontainers/features/common-utils:2": {
+      "installZsh": true,
+      "configureZshAsDefaultShell": true
+    }
+  },
   "customizations": {
     "vscode": {
       "extensions": [
@@ -12,9 +26,7 @@
         "redhat.vscode-yaml"
       ],
       "settings": {
-        // Hide the Git controls inside the container to avoid confusion
         "git.enabled": false,
-        // But keep the UI clean
         "workbench.activityBar.visible": true,
         "terminal.integrated.defaultProfile.linux": "zsh",
         "github.copilot.enable": {
@@ -24,7 +36,6 @@
       }
     }
   },
-  // Security Guardrail: Verifies isolation on connect
   "postAttachCommand": "echo '✅ Secure Agents Environment Active'",
   "remoteUser": "vscode"
 }
