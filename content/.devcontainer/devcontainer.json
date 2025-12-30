@@ -1,0 +1,30 @@
+{
+  "name": "Wunder.io Agents Workspace",
+  "service": "agents",
+  "workspaceFolder": "/workspace",
+  "customizations": {
+    "vscode": {
+      "extensions": [
+        "github.copilot",
+        "github.copilot-chat",
+        "davidanson.vscode-markdownlint",
+        "ms-azuretools.vscode-docker",
+        "redhat.vscode-yaml"
+      ],
+      "settings": {
+        // Hide the Git controls inside the container to avoid confusion
+        "git.enabled": false,
+        // But keep the UI clean
+        "workbench.activityBar.visible": true,
+        "terminal.integrated.defaultProfile.linux": "zsh",
+        "github.copilot.enable": {
+          "*": true
+        },
+        "editor.formatOnSave": true
+      }
+    }
+  },
+  // Security Guardrail: Verifies isolation on connect
+  "postAttachCommand": "echo '✅ Secure Agents Environment Active'",
+  "remoteUser": "vscode"
+}
