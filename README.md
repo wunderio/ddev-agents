@@ -36,10 +36,13 @@ This add-on is specifically designed and supported for:
 
 If you run agents while still on your host machine, you lose the safety of the isolated environment, and scripts will have direct access to your local system. Look for the "Dev Container: Agents" indicator in the bottom-left corner of VS Code (or your editor's equivalent) before proceeding.
 
-## Installation
+### 1. Start DDEV
+Before opening the devcontainer, ensure your DDEV project is running:
+```bash
+ddev start
+```
 
-Once installed, this add-on creates a `.devcontainer` directory in your project root that is linked to the DDEV environment.
-
+### 2. Open in VS Code
 1.  Open your project in **VS Code**.
 2.  When prompted, click **"Reopen in Container"** (or use the Command Palette: `Dev Containers: Reopen in Container`).
 3.  VS Code will connect to the `agents` container, providing a terminal with all necessary tools pre-installed.
@@ -48,8 +51,42 @@ Once installed, this add-on creates a `.devcontainer` directory in your project 
 
 -   **Isolated Python Environment**: Based on `mcr.microsoft.com/devcontainers/python:3-bookworm`.
 -   **Integrated Tools**: Pre-installed Node.js, GH CLI, Git, and common utilities.
--   **Optimized Extensions**: Bundled with GitHub Copilot and other essential AI development extensions.
--   **Automatic DDEV Integration**: Automatically starts DDEV when the container is initialized.
+-   **GitHub Copilot (Agent Mode)**: Includes the `gh-copilot` CLI extension and a convenience `copilot` alias.
+-   **Secure Authentication**: Uses your host's `GH_TOKEN` automatically, so you never have to type credentials inside the container.
+
+## GitHub Authentication (Recommended Setup)
+
+To use GitHub Copilot (Agent Mode) or `gh` commands without repetitive logins, set up a Personal Access Token (PAT) on your **host machine**.
+
+### 1. Generate a GitHub Token
+1.  Go to [GitHub Fine-grained Tokens](https://github.com/settings/personal-access-tokens/new).
+2.  **Name & Expiration**: Set a name (e.g., "Copilot CLI Local") and a reasonable expiration.
+3.  **Repository Access**: Select **Public Repositories (read-only)** or **Only select repositories** (even if you select none). The CLI works on local files and doesn't need to see your remote repos.
+4.  **Account Permissions**:
+    -   Find the **Copilot Requests** dropdown.
+    -   Select **Access: Read-only**.
+5.  Generate and copy the token.
+
+### 2. Configure your Host Machine
+Add the token to your shell profile so it's always available when you start the devcontainer.
+
+**For macOS/Linux (Zsh or Bash):**
+1.  Open your shell profile (e.g., `~/.zshrc` or `~/.profile`):
+    ```bash
+    nano ~/.zshrc
+    ```
+2.  Add this line at the end:
+    ```bash
+    export GH_TOKEN=your_token_here
+    ```
+3.  Save and restart your terminal (or run `source ~/.zshrc`).
+
+> [!IMPORTANT]
+> **Troubleshooting for macOS**: If the token is not recognized after rebuilding, try launching VS Code directly from your terminal by running `code .` in your project folder. This ensures VS Code inherits your shell's environment variables.
+
+### 3. Benefits
+-   **Zero-Interaction**: The devcontainer automatically picks up `$GH_TOKEN` and configures the `gh-copilot` extension.
+-   **Security**: No credentials are ever typed or stored inside the container's history/filesystem. 
 
 ## Centralized Development
 
