@@ -52,7 +52,7 @@ ddev start
 -   **Isolated Python Environment**: Based on `mcr.microsoft.com/devcontainers/python:3-bookworm`.
 -   **Integrated Tools**: Pre-installed Node.js, GH CLI, Git, and common utilities.
 -   **GitHub Copilot (Agent Mode)**: Includes the `gh-copilot` CLI extension and a convenience `copilot` alias.
--   **Secure Authentication**: Uses your host's `GH_TOKEN` automatically, so you never have to type credentials inside the container.
+-   **Secure Authentication**: Uses your host's `DDEV_AGENTS_GH_TOKEN` automatically, so you never have to type credentials inside the container.
 
 ## GitHub Authentication (Recommended Setup)
 
@@ -77,7 +77,7 @@ Add the token to your shell profile so it's always available when you start the 
     ```
 2.  Add this line at the end:
     ```bash
-    export GH_TOKEN=your_token_here
+    export DDEV_AGENTS_GH_TOKEN=your_token_here
     ```
 3.  Save and restart your terminal (or run `source ~/.zshrc`).
 
@@ -85,7 +85,7 @@ Add the token to your shell profile so it's always available when you start the 
 > **Troubleshooting for macOS**: If the token is not recognized after rebuilding, try launching VS Code directly from your terminal by running `code .` in your project folder. This ensures VS Code inherits your shell's environment variables.
 
 ### 3. Benefits
--   **Zero-Interaction**: The devcontainer automatically picks up `$GH_TOKEN` and configures the `gh-copilot` extension.
+-   **Zero-Interaction**: The devcontainer automatically picks up host's `$DDEV_AGENTS_GH_TOKEN` and uses it as `$GH_TOKEN` inside the container, then configures the `gh-copilot` extension.
 -   **Security**: No credentials are ever typed or stored inside the container's history/filesystem. 
 
 ## Centralized Development
