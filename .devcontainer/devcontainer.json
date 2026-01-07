@@ -17,6 +17,7 @@
     "ghcr.io/devcontainers/features/github-cli:1": {
       "installDirectlyFromGitHubRelease": true
     },
+    "ghcr.io/devcontainers/features/copilot-cli:1": {},
     "ghcr.io/devcontainers/features/git:1": {},
     "ghcr.io/devcontainers/features/common-utils:2": {
       "installZsh": true,
@@ -43,7 +44,6 @@
       }
     }
   },
-  "postCreateCommand": "sh -c 'until command -v gh >/dev/null 2>&1; do sleep 1; done; gh extension install github/gh-copilot; echo \"alias copilot=\\\"gh copilot\\\"\" >> ~/.zshrc'",
   "postAttachCommand": "echo '✅ Secure Agents Environment Active'",
   "remoteUser": "vscode"
 }
