@@ -42,6 +42,14 @@
         },
         "editor.formatOnSave": true
       }
+    },
+    "jetbrains": {
+      "plugins": [
+        "org.jetbrains.plugins.github",
+        "org.intellij.plugins.markdown",
+        "Docker",
+        "com.github.copilot"
+      ]
     }
   },
   "postAttachCommand": "echo '✅ Secure Agents Environment Active'",
