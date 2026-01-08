@@ -110,9 +110,12 @@ The purpose of this repository is to serve as the single source of truth for our
 > If the token is not recognized after rebuilding, try launching VS Code directly from your terminal by running `code .` in your project folder. This ensures VS Code inherits your shell's environment variables.
 
 **Troubleshooting for Linux/Ubuntu:**
+
 If you get error `ERROR: unable to prepare context: path "/tmp/devcontainercli-something/empty-folder" not found` 
->Mmake sure you don't have Docker installed as a snap package. If it is, remove the snap and install Docker the traditional way
+>Make sure you don't have Docker installed as a snap package. If it is, remove the snap and install Docker the traditional way
+
 (PhpStorm) If you get error `ERROR [stage-0 4/7] RUN chmod -R 0755 /tmp/jb-devcontainer-features/ghcr.io-devcontainers-features-node-1 && cd /tmp/jb-devcontainer-features/ghcr.io-devcontainers-features-node-1 && chmod +x ./devconta  40.6s`
+
 >You need to add
 > ```bash
 >    {
