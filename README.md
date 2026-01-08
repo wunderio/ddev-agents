@@ -20,7 +20,7 @@ The `ddev-agents` add-on provides a pre-configured `agents` service and VS Code 
 To install the add-on in your DDEV project, run:
 
 ```bash
-ddev get wunderio/ddev-agents
+ddev addon get wunderio/ddev-agents
 ddev restart
 ```
 
@@ -103,7 +103,7 @@ Add the token to your shell profile so it's always available when you start the 
 
 ## Centralized Development
 
-The purpose of this repository is to serve as the single source of truth for our agentic workflows. By using `ddev get`, projects can stay up-to-date with our latest agent configurations by simply running `ddev get wunderio/ddev-agents` again.
+The purpose of this repository is to serve as the single source of truth for our agentic workflows. By using `ddev addon get`, projects can stay up-to-date with our latest agent configurations by simply running `ddev addon get wunderio/ddev-agents` again.
 
 ## Troubleshooting
 
