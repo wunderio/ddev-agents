@@ -29,6 +29,7 @@ ddev restart
 This add-on is specifically designed and supported for:
 
 -   **VS Code** (Primary interface)
+-   **Jetbrains IDEs** (PhpStorm, WebStorm etc.)
 -   **Antigravity** (AI Coding Assistant)
 
 ### ⚠️ CRITICAL: Connection Check
@@ -42,16 +43,16 @@ Before opening the devcontainer, ensure your DDEV project is running:
 ddev start
 ```
 
-### 2. Open in VS Code
-1.  Open your project in **VS Code**.
+### 2. Open in Editor
+1.  Open your project in **VS Code** or **PhpStorm**.
 2.  When prompted, click **"Reopen in Container"** (or use the Command Palette: `Dev Containers: Reopen in Container`).
-3.  VS Code will connect to the `agents` container, providing a terminal with all necessary tools pre-installed.
+3.  IDE will be relaunched in `agents` container, providing a terminal with all necessary tools pre-installed and running all IDE AI requests inside the container with only access to files inside the `workspace`.
 
 ## Features
 
 -   **Isolated Python Environment**: Based on `mcr.microsoft.com/devcontainers/python:3-bookworm`.
--   **Integrated Tools**: Pre-installed Node.js, GH CLI, Git, and common utilities.
--   **GitHub Copilot (Agent Mode)**: Includes the `gh-copilot` CLI extension and a convenience `copilot` alias.
+-   **Integrated Tools**: Pre-installed Node.js, GH CLI, Git and common utilities.
+-   **GitHub Copilot (Agent Mode)**: Includes the `copilot` CLI extension.
 -   **Secure Authentication**: Uses your host's `DDEV_AGENTS_GH_TOKEN` automatically, so you never have to type credentials inside the container.
 
 ## GitHub Authentication (Recommended Setup)
@@ -60,7 +61,7 @@ To use GitHub Copilot (Agent Mode) or `gh` commands without repetitive logins, s
 
 ### 1. Generate a GitHub Token
 1.  Go to [GitHub Fine-grained Tokens](https://github.com/settings/personal-access-tokens/new).
-2.  **Name & Expiration**: Set a name (e.g., "Copilot CLI Local") and a reasonable expiration.
+2.  **Name & Expiration**: Set a name (e.g., "Copilot CLI Local") and a reasonable expiration (max 366 days).
 3.  **Repository Access**: Select **Public Repositories (read-only)** or **Only select repositories** (even if you select none). The CLI works on local files and doesn't need to see your remote repos.
 4.  **Account Permissions**:
     -   Find the **Copilot Requests** dropdown.
@@ -70,7 +71,7 @@ To use GitHub Copilot (Agent Mode) or `gh` commands without repetitive logins, s
 ### 2. Configure your Host Machine
 Add the token to your shell profile so it's always available when you start the devcontainer.
 
-**For macOS/Linux (Zsh or Bash):**
+**For macOS (Zsh or Bash):**
 1.  Open your shell profile (e.g., `~/.zshrc` or `~/.profile`):
     ```bash
     nano ~/.zshrc
@@ -81,8 +82,20 @@ Add the token to your shell profile so it's always available when you start the 
     ```
 3.  Save and restart your terminal (or run `source ~/.zshrc`).
 
-> [!IMPORTANT]
-> **Troubleshooting for macOS**: If the token is not recognized after rebuilding, try launching VS Code directly from your terminal by running `code .` in your project folder. This ensures VS Code inherits your shell's environment variables.
+**For Linux/Ubuntu:**
+1.  Run 
+    ```bash
+    systemctl --user edit --full --force environment.d/myenv.conf`
+    ```
+2.  Add line:
+    ```bash
+    DDEV_AGENTS_GH_TOKEN=your_token_here
+    ```
+3.  Save and run
+    ```bash
+    systemctl --user daemon-reload
+    ```
+
 
 ### 3. Benefits
 -   **Zero-Interaction**: The devcontainer automatically picks up host's `$DDEV_AGENTS_GH_TOKEN` and uses it as `$GH_TOKEN` inside the container, then configures the `gh-copilot` extension.
@@ -91,3 +104,18 @@ Add the token to your shell profile so it's always available when you start the 
 ## Centralized Development
 
 The purpose of this repository is to serve as the single source of truth for our agentic workflows. By using `ddev get`, projects can stay up-to-date with our latest agent configurations by simply running `ddev get wunderio/ddev-agents` again.
+
+### 4. Troubleshooting
+**Troubleshooting for macOS**: 
+> If the token is not recognized after rebuilding, try launching VS Code directly from your terminal by running `code .` in your project folder. This ensures VS Code inherits your shell's environment variables.
+
+**Troubleshooting for Linux/Ubuntu:**
+> If you get error `ERROR: unable to prepare context: path "/tmp/devcontainercli-something/empty-folder" not found` make sure you don't have Docker installed as a snap package. If it is, remove the snap and install Docker the traditional way
+> (PhpStorm) If you get error `ERROR [stage-0 4/7] RUN chmod -R 0755 /tmp/jb-devcontainer-features/ghcr.io-devcontainers-features-node-1 && cd /tmp/jb-devcontainer-features/ghcr.io-devcontainers-features-node-1 && chmod +x ./devconta  40.6s` you might need to add
+> ```bash
+>    {
+>      "dns": ["8.8.8.8", "8.8.4.4", "1.1.1.1"]
+>    }
+>    ```
+>    Into your `/etc/docker/daemon.json` file and restart docker (`sudo systemctl restart docker`)
+
