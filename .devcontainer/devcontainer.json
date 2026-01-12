@@ -45,6 +45,7 @@
       }
     },
     "jetbrains": {
+      "backend": "PhpStorm",
       "plugins": [
         "org.jetbrains.plugins.github",
         "org.intellij.plugins.markdown",
