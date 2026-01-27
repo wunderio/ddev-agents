@@ -43,7 +43,10 @@ Before opening the devcontainer, ensure your DDEV project is running:
 ddev start
 ```
 
-### 2. Open in Editor
+### 2. Install required plugins
+1. For PhpStorm: install devcontainers plugin
+
+### 3. Open in Editor
 1.  Open your project in **VS Code** or **PhpStorm**.
 2.  When prompted, click **"Reopen in Container"** (or use the Command Palette: `Dev Containers: Reopen in Container`).
 3.  IDE will be relaunched in `agents` container, providing a terminal with all necessary tools pre-installed and running all IDE AI requests inside the container with only access to files inside the `workspace`.
