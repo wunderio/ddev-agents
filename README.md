@@ -44,12 +44,23 @@ ddev start
 ```
 
 ### 2. Install required plugins
-1. For PhpStorm: install devcontainers plugin
+1. For PhpStorm: install the "Dev Containers" plugin:
+
+- Navigate to "Settings → Plugins", enable "Dev Containers" and its dependencies, and restart the IDE
+
 
 ### 3. Open in Editor
 1.  Open your project in **VS Code** or **PhpStorm**.
-2.  When prompted, click **"Reopen in Container"** (or use the Command Palette: `Dev Containers: Reopen in Container`).
+2.  When prompted, click **"Reopen in Container"**
 3.  IDE will be relaunched in `agents` container, providing a terminal with all necessary tools pre-installed and running all IDE AI requests inside the container with only access to files inside the `workspace`.
+
+If you don't get the popup you can manually launch the project inside devcontainer:
+In VSCode use the Command Palette (<ctrl>-<shift>-p): `Dev Containers: Reopen in Container`.
+In PhpStorm:
+- Navigate to: "Menu bar → Tools → Services → Dev Containers → Show Dev Containers"
+- If there isn't any, click "New Dev Container" under the "Dev Containers" sidebar item
+- Under "From Local Project", use the default settings, and from the "Path to devcontainer.json", select "Specify Path" and the path of your project's devcontainer.json (for example: /Users/myuser/Sites/myproject/.devcontainer/devcontainer.json)
+
 
 ## Features
 
