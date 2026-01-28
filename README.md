@@ -44,7 +44,7 @@ ddev start
 ```
 
 ### 2. Install required plugins
-1. For PhpStorm: install devcontainers plugin:
+1. For PhpStorm: install the "Dev Containers" plugin:
 
 - Navigate to "Settings → Plugins", enable "Dev Containers" and its dependencies, and restart the IDE
 
