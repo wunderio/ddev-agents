@@ -55,7 +55,7 @@ ddev start
 3.  IDE will be relaunched in `agents` container, providing a terminal with all necessary tools pre-installed and running all IDE AI requests inside the container with only access to files inside the `workspace`.
 
 If you don't get the popup you can manually launch the project inside devcontainer:
-In VSCode use the Command Palette (<ctrl>-<shift>-p): `Dev Containers: Reopen in Container`.
+In VSCode use the Command Palette (< ctrl >-< shift >-p): `Dev Containers: Reopen in Container`.
 In PhpStorm:
 - Navigate to: "Menu bar → Tools → Services → Dev Containers → Show Dev Containers"
 - If there isn't any, click "New Dev Container" under the "Dev Containers" sidebar item
