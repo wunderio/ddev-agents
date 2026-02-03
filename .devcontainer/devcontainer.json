@@ -39,7 +39,7 @@
         "redhat.vscode-yaml"
       ],
       "settings": {
-        "git.enabled": false,
+        "git.enabled": true,
         "workbench.activityBar.visible": true,
         "terminal.integrated.defaultProfile.linux": "zsh",
         "github.copilot.enable": {
