@@ -121,6 +121,19 @@ The purpose of this repository is to serve as the single source of truth for our
 
 ## Troubleshooting
 
+*General:*
+
+Container (re)build fails with the following error message:
+```
+W: GPG error: [https://dl.yarnpkg.com/debian](vscode-file://vscode-app/Applications/Visual%20Studio%20Code.app/Contents/Resources/app/out/vs/code/electron-browser/workbench/workbench.html) stable InRelease: The following signatures couldn't be verified because the public key is not available: NO_PUBKEY 62D54FD4003F6525
+E: The repository '[https://dl.yarnpkg.com/debian](vscode-file://vscode-app/Applications/Visual%20Studio%20Code.app/Contents/Resources/app/out/vs/code/electron-browser/workbench/workbench.html) stable InRelease' is not signed.
+ERROR: Feature "Common Utilities" (ghcr.io/devcontainers/features/common-utils) failed to install!
+```
+> There was an issue in earlier versions of devcontainer with expired Yarn GPG keys. This has already been fixed upstream, but if you are still getting the erro you probably have those older images cached on your local machine.
+To fix the issue you need to remove the old images from your system by running the following commands:
+`docker images -a` <- find the devcontainer image id
+`docker rmi mcr.microsoft.com/devcontainers/python:3-bookworm`
+
 **Troubleshooting for macOS**: 
 
 $GH_TOKEN is not recognized after rebuilding
@@ -139,4 +152,5 @@ If you get error `ERROR: unable to prepare context: path "/tmp/devcontainercli-s
 >    }
 >    ```
 >    Into your `/etc/docker/daemon.json` file and restart docker (`sudo systemctl restart docker`)
+
 
