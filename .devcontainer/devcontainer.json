@@ -33,6 +33,8 @@
   },
   "customizations": {
     "vscode": {
+      "mcp": {
+        "servers": {
           "wunderio_local_dev_mcp": {
             "type": "stdio",
             "command": "python3",
