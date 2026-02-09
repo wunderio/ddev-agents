@@ -5,9 +5,12 @@ description: "Standardized AI Agent environment for Wunder.io projects."
 project_files:
   - docker-compose.agents.yaml
   - .devcontainer/devcontainer.json
+  - .agents
 post_install_actions:
   - rm -rf ../.devcontainer
   - mv .devcontainer ..
+  - rm -rf ../.agents
+  - mv .agents ..
   - echo "🚀 DDEV Agents installed."
   - echo "👉 Run 'ddev restart' to build the Agents container."
   - echo "👉 Then reopen VS Code in the Container."

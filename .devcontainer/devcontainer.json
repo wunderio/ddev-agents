@@ -4,7 +4,8 @@
   },
   "remoteEnv": {
     "GH_TOKEN": "${localEnv:DDEV_AGENTS_GH_TOKEN}",
-    "SSH_AUTH_SOCK": ""
+    "SSH_AUTH_SOCK": "",
+    "PYTHONDONTWRITEBYTECODE": "1"
   },
   "name": "Wunder.io Agents Workspace",
   "dockerComposeFile": [
@@ -23,6 +24,7 @@
       "installDirectlyFromGitHubRelease": true
     },
     "ghcr.io/devcontainers/features/copilot-cli:1": {},
+    "ghcr.io/devcontainers/features/docker-outside-of-docker:1": {},
     "ghcr.io/devcontainers/features/git:1": {},
     "ghcr.io/devcontainers/features/common-utils:2": {
       "installZsh": true,
@@ -31,6 +33,15 @@
   },
   "customizations": {
     "vscode": {
+          "wunderio_local_dev_mcp": {
+            "type": "stdio",
+            "command": "python3",
+            "args": [
+              "/workspace/.agents/bridge.py"
+            ]
+          }
+        }
+      },
       "extensions": [
         "github.copilot",
         "github.copilot-chat",
@@ -45,7 +56,9 @@
         "github.copilot.enable": {
           "*": true
         },
-        "editor.formatOnSave": true
+        "editor.formatOnSave": true,
+        "chat.mcp.gallery.enabled": true,
+        "chat.mcp.autostart": "newAndOutdated"
       }
     },
     "jetbrains": {
@@ -58,6 +71,6 @@
       ]
     }
   },
-  "postAttachCommand": "echo '✅ Secure Agents Environment Active'",
+  "postCreateCommand": "bash .agents/setup.sh",
   "remoteUser": "vscode"
 }
