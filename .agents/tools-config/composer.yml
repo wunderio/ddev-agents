@@ -1,0 +1,74 @@
+# Composer PHP Dependency Manager Configuration
+# Defines available composer commands
+
+tools:
+  - name: composer_install
+    enabled: true
+    description: Install dependencies from composer.lock file
+
+    type: command
+    command_template: "composer install {args}"
+    container: "ddev-{DDEV_PROJECT}-web"
+    user: auto:uid-from-path
+    default_args:
+      args: "--no-interaction"
+
+    input_schema:
+      type: object
+      properties:
+        args:
+          type: string
+          description: Additional flags (e.g., "--no-dev")
+
+  - name: composer_update
+    enabled: true
+    description: Update dependencies to latest versions
+
+    type: command
+    command_template: "composer update {package} {args}"
+    container: "ddev-{DDEV_PROJECT}-web"
+    user: auto:uid-from-path
+    default_args:
+      args: "--no-interaction"
+
+    input_schema:
+      type: object
+      properties:
+        package:
+          type: string
+          description: Package to update (optional, leave empty for all)
+        args:
+          type: string
+          description: Additional flags
+
+  - name: composer_require
+    enabled: true
+    description: |
+      Add a new dependency
+      
+      Note: May fail due to PHP version constraints in composer.json.
+      If installation fails with PHP version errors, check:
+      - composer.json platform requirements
+      - Current PHP version (use php_exec "echo PHP_VERSION;")
+      - Package compatibility with your PHP version
+      
+      Common issue: Packages may require older PHP versions than what's installed.
+
+    type: command
+    command_template: "composer require {package} {args}"
+    container: "ddev-{DDEV_PROJECT}-web"
+    user: auto:uid-from-path
+    default_args:
+      args: "--no-interaction"
+
+    input_schema:
+      type: object
+      properties:
+        package:
+          type: string
+          description: Package to require (e.g., vendor/package)
+        args:
+          type: string
+          description: Additional flags
+      required:
+        - package
