@@ -14,7 +14,7 @@ import asyncio
 from abc import ABC, abstractmethod
 from typing import Tuple, Optional
 
-logger = logging.getLogger("wunderio_local_dev_mcp.executors")
+logger = logging.getLogger("wdrmcp.executors")
 
 
 class BaseExecutor(ABC):
@@ -173,19 +173,128 @@ class CommandToolExecutor(BaseExecutor):
 class MCPServerToolExecutor(BaseExecutor):
     """Proxy tool calls to external MCP servers via HTTP."""
 
-    def __init__(self, server_url: str, forward_args: bool = True, timeout: int = 30):
+    def __init__(self, server_url: str, forward_args: bool = True, timeout: int = 10,
+                 auth_username: str = None, auth_password: str = None,
+                 auth_token: str = None, auth_token_basic: bool = False, verify_ssl: bool = True):
         self.server_url = server_url
         self.forward_args = forward_args
         self.timeout = timeout
+        self.verify_ssl = verify_ssl
+        self.auth = None
+        self.auth_headers = {}
 
-    async def execute(self, arguments: dict) -> str:
-        """Proxy call to MCP server."""
+        # Use token auth if provided
+        if auth_token:
+            if auth_token_basic:
+                # Drupal MCP uses Basic auth with base64-encoded token
+                import base64
+                encoded = base64.b64encode(auth_token.encode()).decode()
+                self.auth_headers = {"Authorization": f"Basic {encoded}"}
+            else:
+                # Standard Bearer token auth
+                self.auth_headers = {"Authorization": f"Bearer {auth_token}"}
+        elif auth_username and auth_password:
+            # Basic auth with username and password
+            self.auth = httpx.BasicAuth(auth_username, auth_password)
+
+    async def fetch_remote_tools(self) -> list:
+        """Fetch available tools from the remote MCP server."""
         try:
-            async with httpx.AsyncClient(timeout=self.timeout) as client:
-                payload = arguments if self.forward_args else {}
-                response = await client.post(self.server_url, json=payload)
+            logger.info(f"Starting fetch_remote_tools from {self.server_url}")
+            async with httpx.AsyncClient(timeout=self.timeout, verify=self.verify_ssl) as client:
+                logger.info(
+                    f"HTTP client created, sending request with timeout={self.timeout}s")
+                response = await client.post(
+                    self.server_url,
+                    json={"jsonrpc": "2.0", "method": "tools/list",
+                          "params": {}, "id": 1},
+                    auth=self.auth,
+                    headers=self.auth_headers
+                )
+                logger.info(
+                    f"Received response with status {response.status_code}")
                 response.raise_for_status()
-                return response.text
+                result = response.json()
+
+                # Handle different response formats
+                if isinstance(result, dict):
+                    tools = result.get("tools", result.get(
+                        "result", {}).get("tools", []))
+                elif isinstance(result, list):
+                    tools = result
+                else:
+                    logger.warning(
+                        f"Unexpected response format from {self.server_url}")
+                    return []
+
+                logger.info(
+                    f"Fetched {len(tools)} tools from {self.server_url}")
+                return tools
+        except Exception as e:
+            logger.exception(
+                f"Failed to fetch tools from {self.server_url}: {e}")
+            return []
+
+    async def execute(self, arguments: dict, tool_name: str = None) -> str:
+        """Proxy call to MCP server.
+
+        Args:
+            arguments: Tool arguments to forward or {"method": "...", "params": {...}}
+            tool_name: Optional tool name for MCP protocol calls
+        """
+        try:
+            async with httpx.AsyncClient(timeout=self.timeout, verify=self.verify_ssl) as client:
+                # Check if arguments contain a "method" key (JSON-RPC request)
+                method_from_args = arguments.get(
+                    "method") if isinstance(arguments, dict) else None
+
+                if tool_name:
+                    # Tool-specific call via MCP
+                    payload = {
+                        "jsonrpc": "2.0",
+                        "method": "tools/call",
+                        "params": {
+                            "name": tool_name,
+                            "arguments": arguments
+                        },
+                        "id": 1
+                    }
+                elif method_from_args:
+                    # Direct JSON-RPC method call (e.g., {"method": "tools/list", "params": {}})
+                    payload = {
+                        "jsonrpc": "2.0",
+                        "method": method_from_args,
+                        "params": arguments.get("params", {}),
+                        "id": 1
+                    }
+                else:
+                    # Legacy: forward args directly
+                    payload = arguments if self.forward_args else {}
+
+                response = await client.post(
+                    self.server_url,
+                    json=payload,
+                    auth=self.auth,
+                    headers=self.auth_headers
+                )
+                response.raise_for_status()
+                result = response.json()
+
+                # Extract content from MCP response
+                if isinstance(result, dict):
+                    # Check for JSON-RPC result
+                    if "result" in result:
+                        return str(result.get("result", ""))
+                    # Check for content array (MCP format)
+                    content = result.get("content", [])
+                    if isinstance(content, list) and content:
+                        return content[0].get("text", str(result))
+                    # Return error if present
+                    if "error" in result:
+                        return f"RPC Error: {result['error'].get('message', str(result['error']))}"
+                    return str(result)
+
+                return result if isinstance(result, str) else str(result)
         except httpx.TimeoutException:
             return f"Request timeout after {self.timeout}s"
         except httpx.HTTPError as e:

@@ -17,14 +17,13 @@
   "features": {
     "ghcr.io/devcontainers/features/node:1": {},
     "ghcr.io/devcontainers/features/php:1": {
-      "version": "8.4",
+      "version": "8.3",
       "installComposer": true
     },
     "ghcr.io/devcontainers/features/github-cli:1": {
       "installDirectlyFromGitHubRelease": true
     },
     "ghcr.io/devcontainers/features/copilot-cli:1": {},
-    "ghcr.io/devcontainers/features/docker-outside-of-docker:1": {},
     "ghcr.io/devcontainers/features/git:1": {},
     "ghcr.io/devcontainers/features/common-utils:2": {
       "installZsh": true,
@@ -33,17 +32,6 @@
   },
   "customizations": {
     "vscode": {
-      "mcp": {
-        "servers": {
-          "wunderio_local_dev_mcp": {
-            "type": "stdio",
-            "command": "python3",
-            "args": [
-              "/workspace/.agents/bridge.py"
-            ]
-          }
-        }
-      },
       "extensions": [
         "github.copilot",
         "github.copilot-chat",
@@ -59,8 +47,6 @@
           "*": true
         },
         "editor.formatOnSave": true,
-        "chat.mcp.gallery.enabled": true,
-        "chat.mcp.autostart": "newAndOutdated"
       }
     },
     "jetbrains": {
@@ -73,6 +59,6 @@
       ]
     }
   },
-  "postCreateCommand": "bash .agents/setup.sh",
+  "postStartCommand": "bash .agents/setup.sh",
   "remoteUser": "vscode"
 }

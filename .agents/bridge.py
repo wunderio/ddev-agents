@@ -31,19 +31,19 @@ AGENTS_DIR = Path(__file__).parent
 sys.path.insert(0, str(AGENTS_DIR))
 
 # Configure logging to file (stdout is reserved for MCP protocol)
-LOG_FILE = Path("/tmp/wunderio_local_dev_mcp.log")
+LOG_FILE = Path("/tmp/wdrmcp.log")
 logging.basicConfig(
     level=logging.INFO,
     format="%(asctime)s - %(name)s - %(levelname)s - %(message)s",
     filename=str(LOG_FILE),
     filemode="a"
 )
-logger = logging.getLogger("wunderio_local_dev_mcp")
+logger = logging.getLogger("wdrmcp")
 
 # Import executors
 
 # Initialize MCP Server
-app = Server("wunderio_local_dev_mcp")
+app = Server("wdrmcp")
 
 
 class DockerExecutor:
@@ -183,10 +183,75 @@ class ToolRegistry:
             logger.warning(f"Failed to create executor: {tool_name}")
             return 0
 
+        # Check if this is an MCP server that should expose its tools
+        if tool_config.get("type") == "mcp_server" and tool_config.get("expose_remote_tools", False):
+            return self._load_remote_mcp_tools(tool_config, executor)
+
         self.tools[tool_name] = tool_config
         self.executors[tool_name] = executor
         logger.info(f"Loaded tool: {tool_name}")
         return 1
+
+    def _load_remote_mcp_tools(self, proxy_config: dict, executor: MCPServerToolExecutor) -> int:
+        """Load tools from remote MCP server dynamically."""
+        proxy_name = proxy_config.get("name", "unknown")
+        logger.info(f"Fetching remote tools from MCP server: {proxy_name}")
+
+        try:
+            # Fetch tools synchronously during initialization
+            # Use init_timeout from config, or fall back to 30 seconds
+            init_timeout = proxy_config.get("init_timeout", 30)
+            try:
+                # Try to get existing event loop
+                loop = asyncio.get_running_loop()
+                # If we're already in an async context, run in a separate thread
+                import concurrent.futures
+                with concurrent.futures.ThreadPoolExecutor() as pool:
+                    future = pool.submit(
+                        asyncio.run, executor.fetch_remote_tools())
+                    remote_tools = future.result(timeout=init_timeout)
+            except RuntimeError:
+                # No event loop running, we can safely use asyncio.run
+                remote_tools = asyncio.run(executor.fetch_remote_tools())
+
+            if not remote_tools:
+                logger.warning(f"No tools fetched from {proxy_name}")
+                return 0
+
+            loaded_count = 0
+            prefix = proxy_config.get("tool_prefix", "")
+
+            for remote_tool in remote_tools:
+                if isinstance(remote_tool, dict):
+                    remote_name = remote_tool.get("name")
+                    if not remote_name:
+                        continue
+
+                    # Create a wrapper tool config
+                    local_name = f"{prefix}{remote_name}" if prefix else remote_name
+
+                    tool_config = {
+                        "name": local_name,
+                        "description": remote_tool.get("description", ""),
+                        "input_schema": remote_tool.get("inputSchema", {}),
+                        "_remote_tool_name": remote_name,  # Store original name
+                        "_proxy_config": proxy_config  # Store proxy config for execution
+                    }
+
+                    self.tools[local_name] = tool_config
+                    self.executors[local_name] = executor
+                    logger.info(
+                        f"Loaded remote tool: {local_name} (from {remote_name})")
+                    loaded_count += 1
+
+            logger.info(
+                f"Loaded {loaded_count} tools from remote MCP server {proxy_name}")
+            return loaded_count
+
+        except Exception as e:
+            logger.exception(
+                f"Failed to load remote tools from {proxy_name}: {e}")
+            return 0
 
     def _interpolate_container_name(self, container: str) -> str:
         """Replace {DDEV_PROJECT} placeholder with actual project name."""
@@ -219,7 +284,17 @@ class ToolRegistry:
                 if not (server_url := tool_config.get("server_url")):
                     logger.error(f"Tool {tool_name}: missing server_url")
                     return None
-                return MCPServerToolExecutor(server_url)
+                return MCPServerToolExecutor(
+                    server_url=server_url,
+                    forward_args=tool_config.get("forward_args", True),
+                    timeout=tool_config.get("timeout", 10),
+                    auth_username=tool_config.get("auth_username"),
+                    auth_password=tool_config.get("auth_password"),
+                    auth_token=tool_config.get("auth_token"),
+                    auth_token_basic=tool_config.get(
+                        "auth_token_basic", False),
+                    verify_ssl=tool_config.get("verify_ssl", True)
+                )
 
             else:
                 logger.error(f"Unknown tool type: {tool_type}")
@@ -256,6 +331,7 @@ class ToolRegistry:
             return f"Error: Unknown tool '{name}'"
 
         executor = self.executors[name]
+        tool_config = self.tools.get(name, {})
 
         # Validate arguments
         if hasattr(executor, 'validate_arguments'):
@@ -264,7 +340,12 @@ class ToolRegistry:
                 return f"Validation error: {error_msg}"
 
         try:
-            return await executor.execute(arguments)
+            # Check if this is a proxied remote tool
+            remote_tool_name = tool_config.get("_remote_tool_name")
+            if remote_tool_name and isinstance(executor, MCPServerToolExecutor):
+                return await executor.execute(arguments, tool_name=remote_tool_name)
+            else:
+                return await executor.execute(arguments)
         except Exception as e:
             logger.exception(f"Error executing {name}: {e}")
             return f"Error: {str(e)}"

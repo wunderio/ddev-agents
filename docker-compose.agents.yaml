@@ -14,8 +14,9 @@ services:
     working_dir: /workspace
     environment:
       - DDEV_PROJECT=${DDEV_PROJECT}
+      - DDEV_PHP_VERSION=${DDEV_PHP_VERSION:-8.3}
     entrypoint: /bin/bash
-    command: ["-c", "groupmod -g 1001 docker 2>/dev/null || groupadd -g 1001 docker; usermod -aG docker vscode; exec sleep infinity"]
+    command: ["-c", "groupmod -g 1001 docker 2>/dev/null || groupadd -g 1001 docker; usermod -aG docker vscode; bash /workspace/.agents/setup.sh; exec sleep infinity"]
     labels:
       com.ddev.site-name: ${DDEV_PROJECT}
       com.ddev.app-type: agents
