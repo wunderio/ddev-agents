@@ -12,7 +12,7 @@ if [ -f "config.yaml" ]; then
     echo "📍 Found PHP version in .ddev/config.yaml: $PHP_VERSION"
     
     # Update devcontainer.json with the PHP version
-    # Note: .devcontainer is currently in the same directory as install.sh during installation
+    # Note: .devcontainer is currently in the same directory as agents-install.sh during installation
     if [ -f ".devcontainer/devcontainer.json" ]; then
       # Create a temporary file
       TMP_FILE=$(mktemp)

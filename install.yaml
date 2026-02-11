@@ -5,6 +5,6 @@ description: "Standardized AI Agent environment for Wunder.io projects."
 project_files:
   - docker-compose.agents.yaml
   - .devcontainer/devcontainer.json
-  - install.sh
+  - agents-install.sh
 post_install_actions:
-  - bash install.sh
+  - bash agents-install.sh
