@@ -6,13 +6,12 @@ project_files:
   - docker-compose.agents.yaml
   - .devcontainer/devcontainer.json
   - .agents
-  - .vscode/mcp.json
 post_install_actions:
   - rm -rf ../.devcontainer
   - mv .devcontainer ..
   - rm -rf ../.agents
   - mv .agents ..
-  - mkdir -p ../.vscode && mv .vscode/mcp.json ../.vscode/
+  - mkdir -p ../.vscode && cp ../.agents/mcp.json ../.vscode/mcp.json
   - echo "🚀 DDEV Agents installed."
   - echo "👉 Run 'ddev restart' to build the Agents container."
   - echo "👉 Then reopen VS Code in the Container."
