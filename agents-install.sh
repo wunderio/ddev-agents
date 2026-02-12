@@ -1,13 +1,14 @@
 #!/bin/bash
+#ddev-generated
 # Install script for DDEV Agents add-on
 # Sets up the devcontainer with PHP and Node versions from parent DDEV project
 
 set -e
 
 # Get PHP version from parent DDEV project
-if [ -f "config.yaml" ]; then
-  PHP_VERSION=$(grep -E '^\s*php_version:' config.yaml | sed -E 's/.*php_version:[[:space:]]*"?([^"]*)"?/\1/' | xargs)
-  NODE_VERSION=$(grep -E '^\s*nodejs_version:' config.yaml | sed -E 's/.*nodejs_version:[[:space:]]*"?([^"]*)"?/\1/' | xargs)
+if [ -f "../.ddev/config.yaml" ]; then
+  PHP_VERSION=$(grep -E '^\s*php_version:' ../.ddev/config.yaml | sed -E 's/.*php_version:[[:space:]]*"?([^"]*)"?/\1/' | xargs)
+  NODE_VERSION=$(grep -E '^\s*nodejs_version:' ../.ddev/config.yaml | sed -E 's/.*nodejs_version:[[:space:]]*"?([^"]*)"?/\1/' | xargs)
   
   if [ -n "$PHP_VERSION" ]; then
     echo "📍 Found PHP version in .ddev/config.yaml: $PHP_VERSION"
@@ -45,7 +46,7 @@ if [ -n "$NODE_VERSION" ]; then
     sed -E '/"ghcr.io\/devcontainers\/features\/node:1": \{/,/\}/ s/"version": "[^"]*"/"version": "'$NODE_VERSION'"/' .devcontainer/devcontainer.json > "$TMP_FILE"
 
     # If the Node feature was empty, inject a version entry
-    if ! grep -q '"ghcr.io/devcontainers/features/node:1": \{[^}]*"version"' "$TMP_FILE"; then
+    if ! grep -qE '"ghcr.io/devcontainers/features/node:1": \{[^}]*"version"' "$TMP_FILE"; then
       TMP_FILE_2=$(mktemp)
       sed -E 's/"ghcr.io\/devcontainers\/features\/node:1": \{\}/"ghcr.io\/devcontainers\/features\/node:1": {\
       "version": "'$NODE_VERSION'"\
