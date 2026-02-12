@@ -1,0 +1,65 @@
+# Drupal MCP Server Proxy Configuration
+# Proxies to a Drupal-specific MCP server
+#
+# MCP Server Configuration Reference:
+# {
+#     "mcpServers": {
+#         "drupal-mcp": {
+#             "url": "https://drupal-project.ddev.site/mcp/post",
+#             "auth": {
+#                 "type": "basic",
+#                 "username": "your-drupal-username",
+#                 "password": "your-drupal-password"
+#             }
+#         }
+#     }
+# }
+
+tools:
+  - name: drupal_mcp
+    enabled: true
+    type: mcp_server
+    description: |
+      Proxy to the Drupal MCP server for advanced Drupal operations.
+
+      This tool proxies requests to a specialized MCP server running at the Drupal
+      site's /mcp/post endpoint with basic authentication.
+
+      Usage:
+      - Call with {"method": "tools/list", "params": {}} to list available tools
+      - Call with {"method": "tools/call", "params": {"name": "tool_name", "arguments": {...}}} to call tools
+      - Any standard MCP JSON-RPC 2.0 method is supported
+
+    # Drupal MCP server endpoint
+    server_url: "https://drupal-11-testing.ddev.site/mcp/post"
+
+    # Basic authentication with admin credentials
+    auth_username: "admin"
+    auth_password: "admin"
+
+    # Disable SSL verification for local DDEV site (self-signed certificate)
+    verify_ssl: false
+
+    # Dynamically expose all tools from the remote MCP server
+    # This fetches tools during initialization so Copilot can see them directly
+    expose_remote_tools: true
+
+    # Initialization timeout for fetching remote tools (seconds)
+    # Drupal MCP server can be slow, so allow enough time during startup
+    init_timeout: 60
+
+    # Request timeout in seconds (for runtime tool execution)
+    timeout: 60
+
+    # Input schema for JSON-RPC method calls
+    input_schema:
+      type: object
+      properties:
+        method:
+          type: string
+          description: "JSON-RPC method name (e.g., 'tools/list', 'tools/call')"
+        params:
+          type: object
+          description: "Method parameters (varies by method)"
+      required:
+        - method

@@ -1,0 +1,13 @@
+{
+  "servers": {
+    "io.github.wunderio/wdrmcp": {
+      "type": "stdio",
+      "command": "sg",
+      "args": [
+        "docker",
+        "-c",
+        "npx -y @wunderio/wdrmcp --tools-config /workspace/.agents/tools-config"
+      ]
+    }
+  }
+}

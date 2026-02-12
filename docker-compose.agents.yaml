@@ -5,15 +5,20 @@ services:
     # CHANGE THIS LINE: Use the Python 3 image (supports Apple Silicon)
     image: mcr.microsoft.com/devcontainers/python:3-bookworm
     hostname: agents
-    user: vscode
     restart: "no"
+    entrypoint: ["/bin/bash"]
+    command:
+      - "-c"
+      - |
+        bash /workspace/.agents/setup.sh
+        exec sudo -u vscode bash -c "cd /workspace && exec sleep infinity"
     volumes:
       - ../:/workspace:cached
       - ddev-global-cache:/mnt/ddev-global-cache
+      - /var/run/docker.sock:/var/run/docker.sock
     working_dir: /workspace
     environment:
       - DDEV_PROJECT=${DDEV_PROJECT}
-    command: ["sleep", "infinity"]
     labels:
       com.ddev.site-name: ${DDEV_PROJECT}
       com.ddev.app-type: agents
