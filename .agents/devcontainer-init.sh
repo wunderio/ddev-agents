@@ -58,50 +58,61 @@ else
     echo "✅ SSH config already configured"
 fi
 
-# Detect SSH user dynamically from web container
-# DDEV creates a user in the container matching the host user's UID/GID
-# We detect this by SSH'ing to the container and checking who owns /var/www/html
-echo "🔍 Detecting web container user..."
+# SSH user strategy for DDEV containers
+# The DDEV user (host user in container) is automatically created with SSH keys via homeadditions.
+# We need to detect this user and expose it for the MCP server to use.
+echo "🔍 Setting up SSH user configuration..."
 
-# Wait a moment to ensure SSH daemon is ready in web container
-sleep 3
+# Wait a moment for web container to start and run setup-ssh.sh
+sleep 2
 
-# Try common DDEV usernames in order of likelihood
-# DDEV typically creates a user matching the host username
-COMMON_USERS=("$(whoami)" "vscode" "wodby" "root")
+# The setup-ssh.sh script in the web container sets DDEV_SSH_USER and exports it to environment
+# We can try to detect it from the web container
+# Fallback: detect by creating a temporary script that queries the web container
+TEMP_DETECT="/tmp/detect_ddev_user.sh"
+cat > "$TEMP_DETECT" << 'DETECT_EOF'
+stat -c '%U' /var/www/html
+DETECT_EOF
 
+# Try to detect the DDEV user by SSHing to the web container
+# We'll use environment variables to allow connectionwithout keys initially
 DETECTED_USER=""
-for test_user in "${COMMON_USERS[@]}"; do
-    # Try to SSH and get the owner of /var/www/html
-    OWNER=$(ssh -o ConnectTimeout=2 -o BatchMode=yes "${test_user}@web" "stat -c '%U' /var/www/html 2>/dev/null" 2>/dev/null || echo "")
-    
-    if [ -n "$OWNER" ] && [ "$OWNER" != "root" ]; then
-        DETECTED_USER="$OWNER"
-        echo "✅ Detected web container user: $DETECTED_USER"
-        break
-    fi
-done
-
-# If detection failed, fall back to checking local username
-if [ -z "$DETECTED_USER" ]; then
-    # Use the container's username as fallback
-    DETECTED_USER="$(whoami)"
-    echo "⚠️  Could not auto-detect via SSH. Using fallback: $DETECTED_USER"
-    echo "   If SSH fails, manually set: export DDEV_SSH_USER=<your-username>"
+if command -v ssh &> /dev/null; then
+    # Try to detect without authentication first (may fail, that's ok)
+    DETECTED_USER=$(ssh -o ConnectTimeout=3 -o BatchMode=yes -o PasswordAuthentication=no \
+                       "root@web" "stat -c '%U' /var/www/html" 2>/dev/null || echo "")
 fi
 
-# Set DDEV_SSH_USER
+# If detection failed, use environment or fallback
+if [ -z "$DETECTED_USER" ]; then
+    # Check if DDEV_SSH_USER was set by the web container setup-ssh.sh
+    if [ -n "$DDEV_SSH_USER" ]; then
+        DETECTED_USER="$DDEV_SSH_USER"
+        echo "✅ Using DDEV_SSH_USER from environment: $DETECTED_USER"
+    else
+        # Last resort: use current user as fallback
+        DETECTED_USER="$(whoami)"
+        echo "⚠️  Could not detect DDEV user, using fallback: $DETECTED_USER"
+        echo "   This may not work if you're in a different user context"
+    fi
+else
+    echo "✅ Detected DDEV user: $DETECTED_USER"
+fi
+
+# Clean up
+rm -f "$TEMP_DETECT"
+
+# Export DDEV_SSH_USER for the MCP server and other tools
+export DDEV_SSH_USER="$DETECTED_USER"
+
+# Add to shell configs for persistence
 if [ -n "$DETECTED_USER" ]; then
-    # Add to shell configs if not already present
-    if ! grep -q "DDEV_SSH_USER" ~/.bashrc 2>/dev/null; then
+    if ! grep -q "export DDEV_SSH_USER=" ~/.bashrc 2>/dev/null; then
         echo "export DDEV_SSH_USER=\"$DETECTED_USER\"" >> ~/.bashrc
     fi
-    if ! grep -q "DDEV_SSH_USER" ~/.zshrc 2>/dev/null; then
+    if ! grep -q "export DDEV_SSH_USER=" ~/.zshrc 2>/dev/null; then
         echo "export DDEV_SSH_USER=\"$DETECTED_USER\"" >> ~/.zshrc
     fi
-    
-    # Set for current session
-    export DDEV_SSH_USER="$DETECTED_USER"
 fi
 
 # Ensure OpenSSH client is installed

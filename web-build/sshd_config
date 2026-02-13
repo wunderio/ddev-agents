@@ -1,3 +1,4 @@
+#ddev-generated
 # SSHD configuration for DDEV web container
 # Allows SSH access from agents devcontainer for remote command execution
 

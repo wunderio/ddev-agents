@@ -5,8 +5,8 @@ An MCP server that gives AI agents tools to run commands in DDEV containers via 
 ## Architecture
 
 - **Execution Method**: SSH (passwordless key-based authentication)
-- **SSH Keys**: Auto-generated per developer at `.agents/.ssh/`
-- **User Resolution**: Dynamic based on DDEV environment
+- **SSH Keys**: Auto-generated per developer in devcontainer
+- **SSH User**: Dynamically detected DDEV user (matches host username)
 - **No Docker Socket**: Fully isolated from host Docker daemon
 
 ## Proof Of Concept
@@ -82,7 +82,17 @@ SSH keys are **automatically generated** on devcontainer startup:
 ### Environment Variables
 
 - `DDEV_PROJECT` - Auto-populated by DDEV (e.g., "myproject")
-- `DDEV_SSH_USER` - SSH username for connecting to containers (auto-detected from web container on startup)
+- `DDEV_SSH_USER` - SSH username for connecting to containers (auto-detected from web container's `/var/www/html` ownership)
+
+### SSH User Detection
+
+The SSH user is automatically detected as follows:
+1. **Web container startup**: `setup-ssh.sh` detects the DDEV user by checking who owns `/var/www/html`
+2. **Exports environment**: Sets `DDEV_SSH_USER` environment variable in the web container
+3. **Devcontainer detection**: `devcontainer-init.sh` detects the same user (fallback if SSH not available)
+4. **Environment propagation**: Exports `DDEV_SSH_USER` to devcontainer shell and MCP server
+
+This approach works for any developer - the user is determined by DDEV itself, not hardcoded.
 
 ### SSH Key Locations
 

@@ -1,4 +1,7 @@
+#ddev-generated
 # Install and configure SSH server for remote command execution
+
+# Install SSH server
 RUN apt-get update && \
     DEBIAN_FRONTEND=noninteractive apt-get install -y \
         openssh-server \
