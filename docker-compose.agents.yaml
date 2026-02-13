@@ -17,6 +17,17 @@ services:
     working_dir: /workspace
     environment:
       - DDEV_PROJECT=${DDEV_PROJECT}
+    networks:
+      - default
     labels:
       com.ddev.site-name: ${DDEV_PROJECT}
       com.ddev.app-type: agents
+
+networks:
+  default:
+    name: ${COMPOSE_PROJECT_NAME}_default
+    external: true
+
+volumes:
+  ddev-global-cache:
+    external: true
