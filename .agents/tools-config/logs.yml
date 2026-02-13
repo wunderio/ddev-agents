@@ -13,8 +13,8 @@ tools:
 
     type: command
     command_template: "tail -n {lines} /var/log/nginx/access.log"
-    container: "ddev-{DDEV_PROJECT}-web"
-    user: www-data
+    ssh_target: "web"
+    ssh_user: "${DDEV_SSH_USER}"
     default_args:
       lines: 100
 
@@ -35,8 +35,8 @@ tools:
 
     type: command
     command_template: "tail -n {lines} /var/log/nginx/error.log"
-    container: "ddev-{DDEV_PROJECT}-web"
-    user: www-data
+    ssh_target: "web"
+    ssh_user: "${DDEV_SSH_USER}"
     default_args:
       lines: 100
 
@@ -57,8 +57,8 @@ tools:
 
     type: command
     command_template: 'tail -n {lines} /var/log/php-fpm.log 2>/dev/null || echo "PHP-FPM log not found"'
-    container: "ddev-{DDEV_PROJECT}-web"
-    user: www-data
+    ssh_target: "web"
+    ssh_user: "${DDEV_SSH_USER}"
     default_args:
       lines: 100
 
@@ -79,8 +79,8 @@ tools:
 
     type: command
     command_template: 'tail -n {lines} /usr/share/elasticsearch/logs/elasticsearch.log 2>/dev/null || echo "Elasticsearch logs not found"'
-    container: "ddev-{DDEV_PROJECT}-elasticsearch"
-    user: elasticsearch
+    ssh_target: "elasticsearch"
+    ssh_user: "elasticsearch"
     default_args:
       lines: 100
 

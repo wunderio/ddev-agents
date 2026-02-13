@@ -8,8 +8,8 @@ tools:
 
     type: command
     command_template: "composer install {args}"
-    container: "ddev-{DDEV_PROJECT}-web"
-    user: auto:uid-from-path
+    ssh_target: "web"
+    ssh_user: "${DDEV_SSH_USER}"
     default_args:
       args: "--no-interaction"
 
@@ -26,8 +26,8 @@ tools:
 
     type: command
     command_template: "composer update {package} {args}"
-    container: "ddev-{DDEV_PROJECT}-web"
-    user: auto:uid-from-path
+    ssh_target: "web"
+    ssh_user: "${DDEV_SSH_USER}"
     default_args:
       args: "--no-interaction"
 
@@ -56,8 +56,8 @@ tools:
 
     type: command
     command_template: "composer require {package} {args}"
-    container: "ddev-{DDEV_PROJECT}-web"
-    user: auto:uid-from-path
+    ssh_target: "web"
+    ssh_user: "${DDEV_SSH_USER}"
     default_args:
       args: "--no-interaction"
 

@@ -27,8 +27,8 @@ tools:
 
     type: command
     command_template: "vendor/bin/drush {command} {args}"
-    container: "ddev-{DDEV_PROJECT}-web"
-    user: auto:uid-from-path
+    ssh_target: "web"
+    ssh_user: "${DDEV_SSH_USER}"
 
     default_args:
       args: ""
@@ -85,8 +85,8 @@ tools:
 
     type: command
     command_template: "vendor/bin/drush cache:rebuild"
-    container: "ddev-{DDEV_PROJECT}-web"
-    user: auto:uid-from-path
+    ssh_target: "web"
+    ssh_user: "${DDEV_SSH_USER}"
 
     input_schema:
       type: object
@@ -102,8 +102,8 @@ tools:
 
     type: command
     command_template: "vendor/bin/drush sql-drop -y --extra=--skip-ssl 2>&1 || true"
-    container: "ddev-{DDEV_PROJECT}-web"
-    user: auto:uid-from-path
+    ssh_target: "web"
+    ssh_user: "${DDEV_SSH_USER}"
 
     input_schema:
       type: object
@@ -121,8 +121,8 @@ tools:
 
     type: command
     command_template: "vendor/bin/drush site-install {profile} -y --account-name={admin_name} --account-pass={admin_pass} --extra=--skip-ssl"
-    container: "ddev-{DDEV_PROJECT}-web"
-    user: auto:uid-from-path
+    ssh_target: "web"
+    ssh_user: "${DDEV_SSH_USER}"
 
     default_args:
       profile: "standard"
@@ -156,8 +156,8 @@ tools:
 
     type: command
     command_template: "vendor/bin/drush watchdog:show --count={lines}"
-    container: "ddev-{DDEV_PROJECT}-web"
-    user: auto:uid-from-path
+    ssh_target: "web"
+    ssh_user: "${DDEV_SSH_USER}"
     default_args:
       lines: 100
 
@@ -194,8 +194,8 @@ tools:
 
     type: command
     command_template: 'vendor/bin/drush php:eval "{code}"'
-    container: "ddev-{DDEV_PROJECT}-web"
-    user: auto:uid-from-path
+    ssh_target: "web"
+    ssh_user: "${DDEV_SSH_USER}"
 
     input_schema:
       type: object
