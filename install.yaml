@@ -6,12 +6,18 @@ project_files:
   - docker-compose.agents.yaml
   - .devcontainer/devcontainer.json
   - .agents
+  - web-build
+  - web-entrypoint.d
 post_install_actions:
   - rm -rf ../.devcontainer
   - mv .devcontainer ..
   - rm -rf ../.agents
   - mv .agents ..
   - mkdir -p ../.vscode && cp ../.agents/mcp.json ../.vscode/mcp.json
+  # Prepare directory for homeadditions SSH (keys generated on devcontainer start)
+  - mkdir -p ../.ddev/homeadditions/.ssh
+  - chmod 700 ../.ddev/homeadditions/.ssh
   - echo "🚀 DDEV Agents installed."
-  - echo "👉 Run 'ddev restart' to build the Agents container."
+  - echo "👉 Run 'ddev restart' to build the Agents container and generate SSH keys."
+  - echo "👉 SSH keys will be auto-generated on first start and synced to homeadditions."
   - echo "👉 Then reopen VS Code in the Container."
