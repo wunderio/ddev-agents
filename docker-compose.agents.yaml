@@ -10,12 +10,10 @@ services:
     command:
       - "-c"
       - |
-        bash /workspace/.agents/setup.sh
         exec sudo -u vscode bash -c "cd /workspace && exec sleep infinity"
     volumes:
       - ../:/workspace:cached
       - ddev-global-cache:/mnt/ddev-global-cache
-      - /var/run/docker.sock:/var/run/docker.sock
     working_dir: /workspace
     environment:
       - DDEV_PROJECT=${DDEV_PROJECT}
