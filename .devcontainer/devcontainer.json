@@ -41,16 +41,7 @@
       "settings": {
         "git.enabled": true,
         "workbench.activityBar.visible": true,
-        "terminal.integrated.defaultProfile.linux": "zsh (docker)",
-        "terminal.integrated.profiles.linux": {
-          "zsh (docker)": {
-            "path": "sg",
-            "args": ["docker", "-c", "exec zsh"]
-          },
-          "zsh": {
-            "path": "zsh"
-          }
-        },
+        "terminal.integrated.defaultProfile.linux": "zsh",
         "github.copilot.enable": {
           "*": true
         },
