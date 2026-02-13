@@ -9,6 +9,25 @@ The `ddev-agents` add-on provides a pre-configured `agents` service and VS Code 
 1.  **Host Isolation**: AI agents run in a dedicated, isolated container. This protects your host machine from potentially errant scripts or external packages executed by AI tools.
 2.  **Standardization**: Every project uses the same high-quality, pre-configured environment.
 3.  **Maintainability**: Improvements and security updates are pushed centrally through the add-on.
+4.  **SSH-Based Execution**: Commands execute in DDEV containers via SSH (no Docker socket access needed).
+
+## Architecture
+
+### SSH-Based Command Execution
+
+The agents container connects to DDEV project containers via **SSH**, not Docker socket:
+
+- **Security**: No Docker daemon access from agents container
+- **Isolation**: Clean separation between agent environment and project containers
+- **Simplicity**: Standard SSH tooling, no Docker CLI required
+- **Flexibility**: Easy to extend to remote or multi-host setups
+
+**How it works:**
+1. SSH key pair generated during installation (`.agents/.ssh/`)
+2. Public key installed to DDEV containers via homeadditions
+3. Private key mounted to agents container (read-only)
+4. MCP tools execute commands via SSH (e.g., `ssh <user>@web "drush status"`)
+   - User is auto-detected from the DDEV web container on devcontainer startup
 
 ## Workflow & Security
 
