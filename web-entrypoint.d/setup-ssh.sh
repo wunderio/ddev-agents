@@ -26,33 +26,40 @@ fi
 
 echo "ℹ️  DDEV user home: $DDEV_USER_HOME"
 
+# Persist the detected user to a shared file for the agents container
+SSH_USER_FILE="/var/www/html/.ddev/.agents/ssh_user"
+mkdir -p "$(dirname "$SSH_USER_FILE")"
+echo "$DDEV_USER" > "$SSH_USER_FILE"
+chmod 644 "$SSH_USER_FILE"
+echo "ℹ️  Wrote SSH user to $SSH_USER_FILE"
+
 # Create .ssh directory for DDEV user if needed
 SSH_DIR="$DDEV_USER_HOME/.ssh"
 if [ ! -d "$SSH_DIR" ]; then
-    mkdir -p "$SSH_DIR"
-    chown "$DDEV_USER:$(id -gn $DDEV_USER)" "$SSH_DIR"
-    chmod 700 "$SSH_DIR"
+    sudo mkdir -p "$SSH_DIR"
+    sudo chown "$DDEV_USER:$(id -gn $DDEV_USER)" "$SSH_DIR"
+    sudo chmod 700 "$SSH_DIR"
     echo "✅ Created SSH directory: $SSH_DIR"
 fi
 
 # Look for SSH keys from homeadditions
-# DDEV applies authorized_keys to the detected user's .ssh directory
-HOMEADDITIONS_KEY="/home/.ddev/homeadditions/.ssh/authorized_keys"
+# DDEV mounts homeadditions at /mnt/ddev_config/homeadditions
+HOMEADDITIONS_KEY="/mnt/ddev_config/homeadditions/.ssh/authorized_keys"
 DDEV_AUTHORIZED_KEYS="$SSH_DIR/authorized_keys"
 
 if [ -f "$HOMEADDITIONS_KEY" ]; then
     if [ ! -f "$DDEV_AUTHORIZED_KEYS" ]; then
         # Copy SSH keys from homeadditions
-        cp "$HOMEADDITIONS_KEY" "$DDEV_AUTHORIZED_KEYS"
-        chown "$DDEV_USER:$(id -gn $DDEV_USER)" "$DDEV_AUTHORIZED_KEYS"
-        chmod 600 "$DDEV_AUTHORIZED_KEYS"
+        sudo cp "$HOMEADDITIONS_KEY" "$DDEV_AUTHORIZED_KEYS"
+        sudo chown "$DDEV_USER:$(id -gn $DDEV_USER)" "$DDEV_AUTHORIZED_KEYS"
+        sudo chmod 600 "$DDEV_AUTHORIZED_KEYS"
         echo "✅ SSH keys added for user $DDEV_USER"
     else
         # Merge keys if authorized_keys already exists
         sort "$HOMEADDITIONS_KEY" "$DDEV_AUTHORIZED_KEYS" | uniq > "$DDEV_AUTHORIZED_KEYS.tmp"
-        mv "$DDEV_AUTHORIZED_KEYS.tmp" "$DDEV_AUTHORIZED_KEYS"
-        chown "$DDEV_USER:$(id -gn $DDEV_USER)" "$DDEV_AUTHORIZED_KEYS"
-        chmod 600 "$DDEV_AUTHORIZED_KEYS"
+        sudo mv "$DDEV_AUTHORIZED_KEYS.tmp" "$DDEV_AUTHORIZED_KEYS"
+        sudo chown "$DDEV_USER:$(id -gn $DDEV_USER)" "$DDEV_AUTHORIZED_KEYS"
+        sudo chmod 600 "$DDEV_AUTHORIZED_KEYS"
         echo "✅ SSH keys merged for user $DDEV_USER"
     fi
     

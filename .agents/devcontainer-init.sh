@@ -8,35 +8,44 @@ echo "🔧 Setting up Local Development MCP server..."
 # 0. SSH Key Generation and Management
 echo "🔐 Setting up SSH keys..."
 
-SSH_PRIVATE_KEY="$HOME/.ssh/id_rsa"
-SSH_PUBLIC_KEY="$HOME/.ssh/id_rsa.pub"
-HOMEADDITIONS_KEY="/workspace/.ddev/homeadditions/.ssh/authorized_keys"
+# Use homeadditions for persistent storage (on host filesystem)
+HOMEADDITIONS_SSH_DIR="/workspace/.ddev/homeadditions/.ssh"
+HOMEADDITIONS_PRIVATE_KEY="$HOMEADDITIONS_SSH_DIR/id_rsa"
+HOMEADDITIONS_PUBLIC_KEY="$HOMEADDITIONS_SSH_DIR/id_rsa.pub"
+HOMEADDITIONS_AUTHORIZED_KEYS="$HOMEADDITIONS_SSH_DIR/authorized_keys"
 
-# Create .ssh directory
-mkdir -p "$HOME/.ssh"
+CONTAINER_SSH_DIR="$HOME/.ssh"
+CONTAINER_PRIVATE_KEY="$CONTAINER_SSH_DIR/id_rsa"
+CONTAINER_PUBLIC_KEY="$CONTAINER_SSH_DIR/id_rsa.pub"
 
-# Check if private key exists in devcontainer
-if [ ! -f "$SSH_PRIVATE_KEY" ]; then
-    echo "📝 Private key not found, generating new SSH key pair..."
-    ssh-keygen -t rsa -b 4096 -f "$SSH_PRIVATE_KEY" -N "" -C "ddev-agents-key-$(date +%s)"
-    echo "✅ SSH key pair generated"
+# Create directories
+mkdir -p "$CONTAINER_SSH_DIR"
+mkdir -p "$HOMEADDITIONS_SSH_DIR"
+
+# Check if keys exist in homeadditions (persistent storage on host)
+if [ -f "$HOMEADDITIONS_PRIVATE_KEY" ] && [ -f "$HOMEADDITIONS_PUBLIC_KEY" ]; then
+    echo "✅ Found existing SSH keys in homeadditions, copying to container..."
+    cp "$HOMEADDITIONS_PRIVATE_KEY" "$CONTAINER_PRIVATE_KEY"
+    cp "$HOMEADDITIONS_PUBLIC_KEY" "$CONTAINER_PUBLIC_KEY"
+    chmod 600 "$CONTAINER_PRIVATE_KEY"
+    chmod 644 "$CONTAINER_PUBLIC_KEY"
+    echo "✅ SSH keys restored from homeadditions"
 else
-    echo "✅ SSH private key exists"
+    echo "📝 No SSH keys in homeadditions, generating new key pair..."
+    ssh-keygen -t rsa -b 4096 -f "$CONTAINER_PRIVATE_KEY" -N "" -C "ddev-agents-key-$(date +%s)"
+    
+    # Save keys to homeadditions for persistence
+    cp "$CONTAINER_PRIVATE_KEY" "$HOMEADDITIONS_PRIVATE_KEY"
+    cp "$CONTAINER_PUBLIC_KEY" "$HOMEADDITIONS_PUBLIC_KEY"
+    chmod 600 "$HOMEADDITIONS_PRIVATE_KEY"
+    chmod 644 "$HOMEADDITIONS_PUBLIC_KEY"
+    echo "✅ SSH key pair generated and saved to homeadditions"
 fi
 
-# Set correct permissions on private key
-chmod 600 "$SSH_PRIVATE_KEY"
-chmod 644 "$SSH_PUBLIC_KEY"
-
-# Copy public key to homeadditions (always update to ensure consistency)
-if [ -f "$SSH_PUBLIC_KEY" ]; then
-    mkdir -p "$(dirname "$HOMEADDITIONS_KEY")"
-    cp "$SSH_PUBLIC_KEY" "$HOMEADDITIONS_KEY"
-    chmod 644 "$HOMEADDITIONS_KEY"
-    echo "✅ Public key synced to homeadditions"
-else
-    echo "⚠️  Public key not found at $SSH_PUBLIC_KEY"
-fi
+# Always ensure public key is in authorized_keys for web container
+cp "$HOMEADDITIONS_PUBLIC_KEY" "$HOMEADDITIONS_AUTHORIZED_KEYS"
+chmod 644 "$HOMEADDITIONS_AUTHORIZED_KEYS"
+echo "✅ Public key synced to authorized_keys"
 
 # 1. Configure SSH client for DDEV containers
 echo "🔐 Configuring SSH client..."
@@ -74,13 +83,21 @@ cat > "$TEMP_DETECT" << 'DETECT_EOF'
 stat -c '%U' /var/www/html
 DETECT_EOF
 
-# Try to detect the DDEV user by SSHing to the web container
-# We'll use environment variables to allow connectionwithout keys initially
+# Try to detect the DDEV user from the shared file written by the web container
 DETECTED_USER=""
+SHARED_USER_FILE="/workspace/.ddev/.agents/ssh_user"
+if [ -f "$SHARED_USER_FILE" ]; then
+    DETECTED_USER="$(cat "$SHARED_USER_FILE" | tr -d '\n\r')"
+fi
+
+# Try to detect the DDEV user by SSHing to the web container
+# We'll use environment variables to allow connection without keys initially
 if command -v ssh &> /dev/null; then
     # Try to detect without authentication first (may fail, that's ok)
-    DETECTED_USER=$(ssh -o ConnectTimeout=3 -o BatchMode=yes -o PasswordAuthentication=no \
-                       "root@web" "stat -c '%U' /var/www/html" 2>/dev/null || echo "")
+    if [ -z "$DETECTED_USER" ]; then
+        DETECTED_USER=$(ssh -o ConnectTimeout=3 -o BatchMode=yes -o PasswordAuthentication=no \
+                           "root@web" "stat -c '%U' /var/www/html" 2>/dev/null || echo "")
+    fi
 fi
 
 # If detection failed, use environment or fallback

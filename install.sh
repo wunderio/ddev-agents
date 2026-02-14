@@ -130,6 +130,12 @@ else
   echo "⚠️  Could not determine DDEV project name"
 fi
 
+# Ensure web-entrypoint.d scripts are executable
+if [ -f "web-entrypoint.d/setup-ssh.sh" ]; then
+  chmod +x web-entrypoint.d/setup-ssh.sh
+  echo "✅ Made web-entrypoint.d/setup-ssh.sh executable"
+fi
+
 # Move devcontainer directory to parent
 echo ""
 rm -rf ../.devcontainer
