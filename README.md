@@ -34,6 +34,12 @@ The agents container connects to DDEV project containers via **SSH**, not Docker
 -   **Git Operations**: All Git operations (`commit`, `push`, `pull`) should be performed on your **host machine**. The container provides access to the code, but you should use your host's Git configuration and SSH keys for repository management.
 -   **Credential Safety**: ⚠️ **NEVER put any credentials, API keys, or secrets inside the devcontainer.** Always use environment variables or DDEV's built-in secret management to pass necessary keys to the container without storing them in the image or container filesystem.
 
+## Runtime Environment File
+
+The add-on writes runtime-only values to a local file at .ddev/.agents/.env (for example, DDEV_SSH_USER). This file is generated per developer and per environment.
+
+Do not add .ddev/.agents/.env to git. It is local, ephemeral, and environment-specific.
+
 ## Installation
 
 To install the add-on in your DDEV project, run:

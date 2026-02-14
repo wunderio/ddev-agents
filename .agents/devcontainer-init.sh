@@ -83,12 +83,13 @@ cat > "$TEMP_DETECT" << 'DETECT_EOF'
 stat -c '%U' /var/www/html
 DETECT_EOF
 
-# Try to detect the DDEV user from the shared file written by the web container
+# Try to detect the DDEV user from the shared env file written by the web container
 DETECTED_USER=""
-SHARED_USER_FILE="/workspace/.ddev/.agents/ssh_user"
-if [ -f "$SHARED_USER_FILE" ]; then
-    DETECTED_USER="$(cat "$SHARED_USER_FILE" | tr -d '\n\r')"
+SHARED_ENV_FILE="/workspace/.ddev/.agents/.env"
+if [ -f "$SHARED_ENV_FILE" ]; then
+    DETECTED_USER="$(grep -E '^DDEV_SSH_USER=' "$SHARED_ENV_FILE" | head -n 1 | sed 's/^DDEV_SSH_USER=//' | tr -d '\n\r')"
 fi
+
 
 # Try to detect the DDEV user by SSHing to the web container
 # We'll use environment variables to allow connection without keys initially

@@ -26,12 +26,12 @@ fi
 
 echo "ℹ️  DDEV user home: $DDEV_USER_HOME"
 
-# Persist the detected user to a shared file for the agents container
-SSH_USER_FILE="/var/www/html/.ddev/.agents/ssh_user"
-mkdir -p "$(dirname "$SSH_USER_FILE")"
-echo "$DDEV_USER" > "$SSH_USER_FILE"
-chmod 644 "$SSH_USER_FILE"
-echo "ℹ️  Wrote SSH user to $SSH_USER_FILE"
+# Persist the detected user to a shared env file for the agents container
+SHARED_ENV_FILE="/var/www/html/.ddev/.agents/.env"
+mkdir -p "$(dirname "$SHARED_ENV_FILE")"
+echo "DDEV_SSH_USER=$DDEV_USER" > "$SHARED_ENV_FILE"
+chmod 644 "$SHARED_ENV_FILE"
+echo "ℹ️  Wrote SSH user to $SHARED_ENV_FILE"
 
 # Create .ssh directory for DDEV user if needed
 SSH_DIR="$DDEV_USER_HOME/.ssh"
