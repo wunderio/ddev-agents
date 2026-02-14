@@ -1,25 +1,23 @@
 {
   "containerEnv": {
-    "GH_TOKEN": "${localEnv:DDEV_AGENTS_GH_TOKEN}",
-    "DDEV_PROJECT": "",
-    "COMPOSE_PROJECT_NAME": ""
+    "GH_TOKEN": "${localEnv:DDEV_AGENTS_GH_TOKEN}"
   },
   "remoteEnv": {
-    "GH_TOKEN": "${localEnv:DDEV_AGENTS_GH_TOKEN}",
-    "DDEV_PROJECT": "",
-    "COMPOSE_PROJECT_NAME": ""
+    "GH_TOKEN": "${localEnv:DDEV_AGENTS_GH_TOKEN}"
   },
-  "name": "Wunder.io Agents Workspace",
+  "name": "Agents: __PROJECT_NAME__",
   "dockerComposeFile": [
-    "../.ddev/docker-compose.agents.yaml"
+    "../.agents/devcontainer-compose.yaml"
   ],
   "service": "agents",
   "workspaceFolder": "/workspace",
   "shutdownAction": "none",
   "features": {
-    "ghcr.io/devcontainers/features/node:1": {},
+    "ghcr.io/devcontainers/features/node:1": {
+      "version": "__NODE_VERSION__"
+    },
     "ghcr.io/devcontainers/features/php:1": {
-      "version": "8.4",
+      "version": "__PHP_VERSION__",
       "installComposer": true
     },
     "ghcr.io/devcontainers/features/github-cli:1": {

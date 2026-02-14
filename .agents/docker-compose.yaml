@@ -1,4 +1,5 @@
-#ddev-generated
+# Agents container compose file
+# Managed by VS Code DevContainer, connects to DDEV network
 services:
   agents:
     container_name: ddev-${DDEV_PROJECT}-agents
