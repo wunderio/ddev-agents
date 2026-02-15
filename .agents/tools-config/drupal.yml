@@ -16,32 +16,32 @@
 # }
 
 tools:
-  - name: drupal_mcp
+  - name: drupal
     enabled: true
     type: mcp_server
     description: |
-      Proxy to the Drupal MCP server for advanced Drupal operations.
+      Drupal MCP server proxy for accessing tools provided by the Drupal site.
 
-      This tool proxies requests to a specialized MCP server running at the Drupal
-      site's /mcp/post endpoint with basic authentication.
+      This proxies requests to the Drupal site's /mcp/post endpoint to discover
+      and call available tools. Discovered tools are prefixed with "drupal_"
+      (e.g., drupal_general_info).
 
       Usage:
-      - Call with {"method": "tools/list", "params": {}} to list available tools
-      - Call with {"method": "tools/call", "params": {"name": "tool_name", "arguments": {...}}} to call tools
-      - Any standard MCP JSON-RPC 2.0 method is supported
+      - Use discovered tools directly (e.g., drupal_general_info, drupal_entity_info)
+      - Each discovered tool is automatically prefixed
 
-    # Drupal MCP server endpoint
-    server_url: "https://drupal-11-testing.ddev.site/mcp/post"
+    # Drupal MCP server endpoint - uses internal DDEV network address
+    server_url: "http://web/mcp/post"
 
-    # Basic authentication with admin credentials
+    # Basic authentication with admin credentials (if required by Drupal module)
     auth_username: "admin"
     auth_password: "admin"
 
-    # Disable SSL verification for local DDEV site (self-signed certificate)
+    # No SSL verification needed for internal HTTP requests
     verify_ssl: false
 
     # Dynamically expose all tools from the remote MCP server
-    # This fetches tools during initialization so Copilot can see them directly
+    # Tools are automatically prefixed with the tool name: drupal_<tool_name>
     expose_remote_tools: true
 
     # Initialization timeout for fetching remote tools (seconds)
