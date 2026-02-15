@@ -68,25 +68,3 @@ tools:
         lines:
           type: integer
           description: Number of lines to return (default 100, max 1000)
-
-  - name: logs_elasticsearch
-    enabled: true
-    description: |
-      Read Elasticsearch logs from the search service container.
-
-      Shows debug, info, and error messages from the Elasticsearch service.
-      Default: Last 100 lines. Maximum: 1000 lines.
-
-    type: command
-    command_template: 'tail -n {lines} /usr/share/elasticsearch/logs/elasticsearch.log 2>/dev/null || echo "Elasticsearch logs not found"'
-    ssh_target: "elasticsearch"
-    ssh_user: "elasticsearch"
-    default_args:
-      lines: 100
-
-    input_schema:
-      type: object
-      properties:
-        lines:
-          type: integer
-          description: Number of lines to return (default 100, max 1000)
