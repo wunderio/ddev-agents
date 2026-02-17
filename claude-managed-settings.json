@@ -1,3 +1,26 @@
 {
-  "disableBypassPermissionsMode": "disable"
+  "disableBypassPermissionsMode": "disable",
+  "permissions": {
+    "deny": [
+      "Read(./.env)",
+      "Read(./.env.*)",
+      "Read(./*secrets*)",
+      "Read(./**/credentials*)",
+      "Read(./**/*.pem)",
+      "Read(./**/*.key)",
+      "Read(./**/.npmrc)",
+      "Read(./**/.htpasswd)",
+      "Read(./wp-config.php)",
+      "Read(./**/settings.local.php)",
+      "Bash(git push*)",
+      "Bash(git remote*)",
+      "Bash(git checkout*)",
+      "Bash(git reset --hard*)",
+      "Bash(git clean -f*)",
+      "Bash(git branch -D*)",
+      "Bash(npm publish*)",
+      "Bash(composer publish*)",
+      "Bash(ssh *)"
+    ]
+  }
 }
