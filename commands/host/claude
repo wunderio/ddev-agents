@@ -1,0 +1,82 @@
+#!/usr/bin/env bash
+
+## #ddev-generated
+## Description: Run Claude Code CLI in the agents container
+## Usage: claude [flags] [args]
+## Example: "ddev claude" or "ddev claude -p 'explain this function'"
+
+CONTAINER="ddev-${DDEV_PROJECT}-agents"
+
+# Verify container is running
+if ! docker inspect --format='{{.State.Running}}' "$CONTAINER" 2>/dev/null | grep -q true; then
+  echo "Error: agents container not running. Run 'ddev start' first."
+  exit 1
+fi
+
+# Fix volume ownership if needed (Docker creates named volumes as root).
+# cap_drop:ALL means even "docker exec -u root" cannot chown inside the
+# hardened container (CAP_CHOWN is dropped). A throwaway container runs
+# outside the security boundary to set correct ownership once.
+if ! docker exec "$CONTAINER" test -w /home/vscode/.claude-state 2>/dev/null; then
+  VSCODE_UID=$(docker exec "$CONTAINER" id -u)
+  VSCODE_GID=$(docker exec "$CONTAINER" id -g)
+  docker run --rm -v ddev-agents-claude-state:/state busybox \
+    chown "${VSCODE_UID}:${VSCODE_GID}" /state
+fi
+
+# Ensure persistent state symlinks exist (idempotent, handles container rebuilds)
+docker exec "$CONTAINER" bash -c '
+  STATE="/home/vscode/.claude-state"
+  mkdir -p "$STATE/claude" "$STATE/config"
+  chmod 700 "$STATE"
+  # Back up any existing non-symlink files before replacing
+  [ ! -e "$HOME/.claude.json" ] || [ -L "$HOME/.claude.json" ] || mv "$HOME/.claude.json" "$STATE/claude.json.bak.$(date +%s)"
+  [ ! -e "$HOME/.claude" ] || [ -L "$HOME/.claude" ] || mv "$HOME/.claude" "$STATE/claude.bak.$(date +%s)"
+  # Initialize claude.json with valid empty JSON if it does not exist
+  [ -s "$STATE/claude.json" ] || echo "{}" > "$STATE/claude.json"
+  ln -sfn "$STATE/claude.json" "$HOME/.claude.json"
+  ln -sfn "$STATE/claude" "$HOME/.claude"
+'
+
+# Install PHP if not present (--privileged overrides cap_drop:ALL for apt-get)
+if ! docker exec "$CONTAINER" command -v php >/dev/null 2>&1; then
+  echo "PHP not found. Installing..."
+  docker exec --privileged -u root "$CONTAINER" bash -c '
+    apt-get update \
+    && apt-get install -y --no-install-recommends \
+      php-cli php-curl php-xml php-tokenizer php-mbstring php-mysql php-zip \
+      unzip curl git ca-certificates build-essential file procps jq \
+    && rm -rf /var/lib/apt/lists/*
+  '
+  # Install Composer
+  docker exec --privileged -u root "$CONTAINER" bash -c '
+    curl -fsSL https://getcomposer.org/installer | php -- --install-dir=/usr/local/bin --filename=composer
+  '
+  # Install yq (not in Debian repos)
+  docker exec --privileged -u root "$CONTAINER" bash -c '
+    YQ_ARCH=$(dpkg --print-architecture)
+    curl -fsSL "https://github.com/mikefarah/yq/releases/latest/download/yq_linux_${YQ_ARCH}" -o /usr/local/bin/yq \
+    && chmod +x /usr/local/bin/yq
+  '
+  echo "PHP installed: $(docker exec "$CONTAINER" php -v | head -1)"
+fi
+
+# Install Claude Code if not present
+if ! docker exec "$CONTAINER" test -f /home/vscode/.local/bin/claude; then
+  echo "Claude Code not found. Installing..."
+  docker exec "$CONTAINER" bash /workspace/.ddev/scripts/claude-bootstrap.sh
+  if [ $? -ne 0 ]; then
+    echo "Error: Claude Code installation failed."
+    exit 1
+  fi
+fi
+
+# TTY detection for interactive vs headless
+TTY_FLAGS="-i"
+if [ -t 0 ]; then
+  TTY_FLAGS="-it"
+fi
+
+# Execute claude, passing through all arguments
+docker exec $TTY_FLAGS -w /workspace "$CONTAINER" \
+  /home/vscode/.local/bin/claude "$@"

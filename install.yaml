@@ -2,12 +2,19 @@ name: ddev-agents
 version: 1.0.0
 description: "Standardized AI Agent environment for Wunder.io projects."
 
+# All project_files must contain a #ddev-generated marker so that
+# "ddev addon get" can overwrite them on updates. Without it, DDEV
+# treats the file as user-customized and skips it.
 project_files:
   - docker-compose.agents.yaml
   - .devcontainer/devcontainer.json
+  - commands/host/claude
+  - scripts/claude-bootstrap.sh
+  - claude-managed-settings.json
 post_install_actions:
   - rm -rf ../.devcontainer
   - mv .devcontainer ..
   - echo "🚀 DDEV Agents installed."
   - echo "👉 Run 'ddev restart' to build the Agents container."
   - echo "👉 Then reopen VS Code in the Container."
+  - echo "👉 Or run 'ddev claude' to use Claude Code from the CLI."

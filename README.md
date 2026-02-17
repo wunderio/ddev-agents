@@ -31,6 +31,7 @@ This add-on is specifically designed and supported for:
 -   **VS Code** (Primary interface)
 -   **Jetbrains IDEs** (PhpStorm, WebStorm etc.)
 -   **Antigravity** (AI Coding Assistant)
+-   **Claude Code** (CLI — via `ddev claude`)
 
 ### ⚠️ CRITICAL: Connection Check
 **Always verify that your IDE is connected to the Dev Container before running any AI agents.** 
@@ -68,6 +69,83 @@ In PhpStorm:
 -   **Integrated Tools**: Pre-installed Node.js, GH CLI, Git and common utilities.
 -   **GitHub Copilot (Agent Mode)**: Includes the `copilot` CLI extension.
 -   **Secure Authentication**: Uses your host's `DDEV_AGENTS_GH_TOKEN` automatically, so you never have to type credentials inside the container.
+
+## Claude Code (Teams) — CLI
+
+Run Claude Code directly from your host terminal via `ddev claude`, with all execution happening inside the isolated agents container.
+
+### Prerequisites
+
+-   A **Claude for Teams** account (centrally billed seats — no personal API keys needed)
+-   DDEV project with the `ddev-agents` add-on installed
+
+### First-Time Setup
+
+1.  Start the DDEV project:
+    ```bash
+    ddev start
+    ```
+2.  Install and authenticate (first run auto-installs Claude Code):
+    ```bash
+    ddev claude login
+    ```
+    Sign in with your company Claude for Teams account when prompted.
+3.  Verify authentication:
+    ```bash
+    ddev claude
+    ```
+    Inside the Claude REPL, run `/status` to confirm the auth method shows **Teams** (not API key).
+
+### Usage
+
+**Interactive mode** (REPL):
+```bash
+ddev claude
+```
+
+**Headless mode** (single prompt):
+```bash
+ddev claude -p "explain what this module does"
+```
+
+**Pass any Claude Code flags**:
+```bash
+ddev claude --version
+ddev claude --help
+```
+
+### How Auth Persistence Works
+
+-   Claude Code auth state is stored in a Docker volume (`ddev-agents-claude-state`)
+-   This volume uses a fixed name, so auth is **shared across all DDEV projects** on the same machine
+-   Auth survives container rebuilds (`ddev restart`) — you only need to log in once
+-   The Claude Code binary is **not** persisted (re-installed on each container rebuild to pick up updates)
+
+### Security
+
+-   **No API keys**: `ANTHROPIC_API_KEY` is explicitly blanked in the container to ensure Teams OAuth is used
+-   **Bypass-permissions disabled**: Managed settings (`claude-managed-settings.json`) are mounted read-only into the container
+-   **Container isolation**: Claude runs inside the agents container with all security hardening (no capabilities, no privilege escalation)
+
+### Resetting Claude State
+
+To clear all auth and configuration data:
+```bash
+docker volume rm ddev-agents-claude-state
+```
+Then run `ddev claude login` again to re-authenticate.
+
+### Troubleshooting
+
+**`ddev claude login` fails or hangs:**
+> The OAuth login flow may require a browser-accessible redirect. If the default flow doesn't work inside the container, try:
+> ```bash
+> ddev claude login --method email-code
+> ```
+> This uses an email verification code instead of a browser redirect.
+
+**`ANTHROPIC_API_KEY` warning on host:**
+> If you have `ANTHROPIC_API_KEY` set in your host environment, it will **not** leak into the container (it's explicitly blanked). However, running `claude` directly on your host (outside DDEV) would use that key and incur API billing instead of Teams subscription.
 
 ## GitHub Authentication (Recommended Setup)
 
