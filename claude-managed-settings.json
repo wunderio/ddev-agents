@@ -1,6 +1,46 @@
 {
   "disableBypassPermissionsMode": "disable",
   "permissions": {
+    "allow": [
+      "WebSearch",
+
+      "Bash(ls *)",
+      "Bash(echo *)",
+      "Bash(test *)",
+      "Bash(command -v *)",
+      "Bash(wc *)",
+      "Bash(find *)",
+      "Bash(grep *)",
+      "Bash(curl *)",
+      "Bash(jq *)",
+      "Bash(tee *)",
+      "Bash(xargs *)",
+
+      "Bash(php *)",
+      "Bash(node *)",
+      "Bash(python3 *)",
+      "Bash(bash *)",
+
+      "Bash(composer *)",
+      "Bash(npm *)",
+      "Bash(pip *)",
+      "Bash(pip3 *)",
+
+      "Bash(git show *)",
+      "Bash(git stash *)",
+      "Bash(git rm *)",
+
+      "Bash(./vendor/bin/phpunit *)",
+      "Bash(./vendor/bin/phpcs *)",
+      "Bash(./vendor/bin/phpcbf *)",
+      "Bash(./vendor/bin/phpstan *)",
+      "Bash(./vendor/bin/grumphp *)",
+
+      "Bash(drush *)",
+      "Bash(./vendor/bin/drush *)",
+
+      "Bash(apt list *)"
+    ],
     "deny": [
       "Read(./.env)",
       "Read(./.env.*)",
