@@ -52,7 +52,7 @@ if ! docker exec "$CONTAINER" bash -c 'command -v php' >/dev/null 2>&1; then
     && apt-get update \
     && apt-get install -y --no-install-recommends \
       php8.4-cli php8.4-curl php8.4-xml php8.4-mbstring php8.4-mysql php8.4-zip php8.4-tokenizer \
-      unzip git build-essential file procps jq \
+      unzip git build-essential file procps jq default-mysql-client \
     && rm -rf /var/lib/apt/lists/*
   '
   # Install Composer

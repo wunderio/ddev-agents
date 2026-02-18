@@ -20,7 +20,16 @@
       "Bash(git branch -D*)",
       "Bash(npm publish*)",
       "Bash(composer publish*)",
-      "Bash(ssh *)"
+      "Bash(ssh *)",
+      "Bash(*drush sql-drop*)",
+      "Bash(*drush sql:drop*)",
+      "Bash(*drush sql-create*)",
+      "Bash(*drush sql:create*)",
+      "Bash(*drush sql-sync*)",
+      "Bash(*drush sql:sync*)",
+      "Bash(*drush site-install*)",
+      "Bash(*drush site:install*)",
+      "Bash(*drush si *)"
     ]
   }
 }
