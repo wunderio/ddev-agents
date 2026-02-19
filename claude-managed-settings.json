@@ -15,6 +15,7 @@
       "Bash(jq *)",
       "Bash(tee *)",
       "Bash(xargs *)",
+      "Bash(awk *)",
 
       "Bash(php *)",
       "Bash(node *)",
