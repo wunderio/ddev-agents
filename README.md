@@ -261,6 +261,7 @@ ddev claude --help
 -   Claude Code auth state is stored in a Docker volume (`ddev-agents-claude-state`)
 -   This volume uses a fixed name, so auth is **shared across all DDEV projects** on the same machine
 -   Auth survives container rebuilds (`ddev restart`) — you only need to log in once
+-   PHP, Composer, and Node.js are **pre-built** into the container image via devcontainer features (no runtime installation needed)
 -   The Claude Code binary is **not** persisted (re-installed on each container rebuild to pick up updates)
 
 ### Security
