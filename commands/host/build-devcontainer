@@ -13,8 +13,10 @@ echo "Building devcontainer image..."
 PROJECT_ROOT="$(cd "$(dirname "$0")/../../.." && pwd)"
 cd "$PROJECT_ROOT"
 
-# Get DDEV project name
-DDEV_PROJECT=$(ddev describe -j | jq -r '.raw.name' 2>/dev/null || echo "ddev-agents")
+# Get DDEV project name - DDEV sets $DDEV_PROJECT for exec-host hooks automatically.
+# Avoid re-reading it via `ddev describe -j` since DDEV_DEBUG mode injects extra JSON
+# objects into stdout that break jq parsing.
+: "${DDEV_PROJECT:=ddev-agents}"
 
 echo "Project: $DDEV_PROJECT"
 echo "Building image: ddev-${DDEV_PROJECT}-devcontainer:latest"
