@@ -44,3 +44,4 @@ devcontainer set-up \
 echo ""
 echo "✅ Devcontainer is ready."
 echo "   Open this folder in VS Code and select 'Reopen in Container' to attach."
+
