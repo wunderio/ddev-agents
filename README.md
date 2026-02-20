@@ -65,8 +65,8 @@ In PhpStorm:
 
 ## Features
 
--   **Isolated Python Environment**: Custom image built on `mcr.microsoft.com/devcontainers/python:3-bookworm` with PHP 8.4, Composer, and yq pre-installed.
--   **Integrated Tools**: Pre-installed Node.js, GH CLI, Git and common utilities.
+-   **Isolated Python Environment**: Pre-built devcontainer image based on `mcr.microsoft.com/devcontainers/python:3-bookworm` with PHP 8.4 and Composer pre-installed.
+-   **Integrated Tools**: Node.js, yq, GH CLI, Git and common utilities installed via devcontainer features.
 -   **GitHub Copilot (Agent Mode)**: Includes the `copilot` CLI extension.
 -   **Secure Authentication**: Uses your host's `DDEV_AGENTS_GH_TOKEN` automatically, so you never have to type credentials inside the container.
 
@@ -119,7 +119,7 @@ ddev claude --help
 -   Claude Code auth state is stored in a Docker volume (`ddev-agents-claude-state`)
 -   This volume uses a fixed name, so auth is **shared across all DDEV projects** on the same machine
 -   Auth survives container rebuilds (`ddev restart`) — you only need to log in once
--   PHP, Composer, and yq are **pre-built** into the container image (no runtime installation needed)
+-   PHP and Composer are **pre-built** into the container image; Node.js, yq, and other tools are installed via devcontainer features during `ddev build-devcontainer`
 -   The Claude Code binary is **not** persisted (re-installed on each container rebuild to pick up updates)
 
 ### Security

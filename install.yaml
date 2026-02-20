@@ -7,8 +7,13 @@ description: "Standardized AI Agent environment for Wunder.io projects."
 # treats the file as user-customized and skips it.
 project_files:
   - docker-compose.agents.yaml
+  - config.agents.yaml
   - .devcontainer/devcontainer.json
+  - .devcontainer/devcontainer.build.json
+  - .devcontainer/Dockerfile
   - commands/host/claude
+  - commands/host/build-devcontainer
+  - commands/host/set-up
   - scripts/claude-bootstrap.sh
   - claude-managed-settings.json
 post_install_actions:
