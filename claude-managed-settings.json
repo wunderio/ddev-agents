@@ -27,6 +27,17 @@
       "Bash(pip *)",
       "Bash(pip3 *)",
 
+      "Bash(git add *)",
+      "Bash(git commit *)",
+      "Bash(git diff *)",
+      "Bash(git log *)",
+      "Bash(git status *)",
+      "Bash(git branch)",
+      "Bash(git branch -a)",
+      "Bash(git branch -r)",
+      "Bash(git branch -v)",
+      "Bash(git branch -vv)",
+      "Bash(git branch --list *)",
       "Bash(git show *)",
       "Bash(git stash *)",
       "Bash(git rm *)",
@@ -39,6 +50,26 @@
 
       "Bash(drush *)",
       "Bash(./vendor/bin/drush *)",
+
+      "Bash(npx *)",
+
+      "Bash(mkdir *)",
+      "Bash(cp *)",
+      "Bash(mv *)",
+      "Bash(diff *)",
+      "Bash(sort *)",
+      "Bash(uniq *)",
+      "Bash(sed *)",
+      "Bash(tar *)",
+      "Bash(unzip *)",
+      "Bash(chmod *)",
+
+      "Bash(which *)",
+      "Bash(type *)",
+      "Bash(cat *)",
+      "Bash(head *)",
+      "Bash(tail *)",
+      "Bash(patch *)",
 
       "Bash(apt list *)"
     ],
