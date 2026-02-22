@@ -1,0 +1,49 @@
+# Forward web_environment variables to the agents container.
+#
+# DDEV injects `web_environment` variables (defined in .ddev/config.yaml) only into
+# the "web" service. The agents container needs the same variables so that AI agents
+# can run commands that interact with your project's services (DB, Elasticsearch, etc.).
+#
+# This file is intentionally NOT managed by the ddev-agents addon (no #ddev-generated
+# header). It will not be overwritten when you run `ddev addon get wunderio/ddev-agents`
+# to update the addon. Customise it freely.
+#
+# HOW TO USE
+# ----------
+# 1. Open .ddev/config.yaml and locate the `web_environment:` section.
+# 2. Copy each variable and its value into the `environment:` list below.
+# 3. Run `ddev restart` to apply the changes.
+#
+# EXAMPLE
+# -------
+# If .ddev/config.yaml contains:
+#
+#   web_environment:
+#     - DB_HOST=dbhost
+#     - DB_USER=dbuser
+#     - DB_PASSWORD=dbpassword
+#     - DB_NAME=dbname
+#     - ELASTICSEARCH_HOST=elasticsearch:9200
+#
+# Then mirror those values here:
+#
+#   services:
+#     agents:
+#       environment:
+#         - DB_HOST=dbhost
+#         - DB_USER=dbuser
+#         - DB_PASSWORD=dbpassword
+#         - DB_NAME=dbname
+#         - ELASTICSEARCH_HOST=elasticsearch:9200
+#
+# NOTE: Keep this file in sync with web_environment whenever config.yaml changes.
+
+services:
+  agents:
+    environment: []
+    # Uncomment and populate with your web_environment variables, e.g.:
+    # environment:
+    #   - DB_HOST=dbhost
+    #   - DB_USER=dbuser
+    #   - DB_PASSWORD=dbpassword
+    #   - DB_NAME=dbname

@@ -7,6 +7,7 @@ description: "Standardized AI Agent environment for Wunder.io projects."
 # treats the file as user-customized and skips it.
 project_files:
   - docker-compose.agents.yaml
+  - docker-compose.agents-env.yaml
   - config.agents.yaml
   - .devcontainer/devcontainer.json
   - .devcontainer/devcontainer.build.json
@@ -26,3 +27,4 @@ post_install_actions:
   - echo "👉 Then reopen VS Code in the Container."
   - echo "👉 Or run 'ddev claude' to use Claude Code from the CLI."
   - echo "👉 Or run 'ddev copilot' from the CLI."
+  - echo "👉 Edit .ddev/docker-compose.agents-env.yaml to forward web_environment variables to the agents container."
