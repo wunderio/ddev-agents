@@ -28,4 +28,8 @@ RUN YQ_ARCH=$(dpkg --print-architecture) && \
       curl -fsSL "https://github.com/mikefarah/yq/releases/latest/download/yq_linux_${YQ_ARCH}" \
       -o /usr/local/bin/yq && chmod +x /usr/local/bin/yq
 
+# Install Claude Code managed settings
+RUN mkdir -p /etc/claude-code
+COPY .ddev/claude-managed-settings.json /etc/claude-code/managed-settings.json
+
 USER vscode
