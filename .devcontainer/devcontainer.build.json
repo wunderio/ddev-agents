@@ -8,8 +8,8 @@
   },
   "name": "Wunder.io Agents Build",
   "build": {
-    "dockerfile": ".devcontainer/Dockerfile",
-    "context": "."
+    "dockerfile": "Dockerfile",
+    "context": ".."
   },
   "features": {
     "ghcr.io/devcontainers/features/node:1": {},
