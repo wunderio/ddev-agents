@@ -41,6 +41,6 @@ services:
 
 volumes:
   claude-state:
-    name: ddev-agents-claude-state
+    name: ddev-${DDEV_PROJECT}-claude-state
   copilot-state:
     name: ddev-${DDEV_PROJECT}-copilot-state
