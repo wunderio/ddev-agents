@@ -45,4 +45,4 @@ volumes:
   ddev-global-cache:
     external: true
   claude-state:
-    name: ddev-agents-claude-state
+    name: ddev-${DDEV_PROJECT}-claude-state
