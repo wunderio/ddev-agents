@@ -20,7 +20,7 @@ fi
 if ! docker exec "$CONTAINER" test -w /home/vscode/.claude-state 2>/dev/null; then
   VSCODE_UID=$(docker exec "$CONTAINER" id -u)
   VSCODE_GID=$(docker exec "$CONTAINER" id -g)
-  docker run --rm -v ddev-agents-claude-state:/state busybox \
+  docker run --rm -v "ddev-${DDEV_PROJECT}-claude-state:/state" busybox \
     chown "${VSCODE_UID}:${VSCODE_GID}" /state
 fi
 
@@ -37,16 +37,6 @@ docker exec "$CONTAINER" bash -c '
   ln -sfn "$STATE/claude.json" "$HOME/.claude.json"
   ln -sfn "$STATE/claude" "$HOME/.claude"
 '
-
-# Install Claude Code if not present
-if ! docker exec "$CONTAINER" test -f /home/vscode/.local/bin/claude; then
-  echo "Installing/Updating Claude Code..."
-  docker exec "$CONTAINER" bash /workspace/.ddev/scripts/claude-bootstrap.sh
-  if [ $? -ne 0 ]; then
-    echo "Error: Claude Code installation failed."
-    exit 1
-  fi
-fi
 
 # TTY detection for interactive vs headless
 TTY_FLAGS="-i"

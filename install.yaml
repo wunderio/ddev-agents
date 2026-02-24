@@ -11,7 +11,8 @@ project_files:
   - config.agents.yaml
   - .devcontainer/devcontainer.json
   - .devcontainer/devcontainer.build.json
-  - .devcontainer/Dockerfile
+  - .devcontainer/features/claude/devcontainer-feature.json
+  - .devcontainer/features/claude/install.sh
   - commands/host/claude
   - commands/host/copilot
   - commands/host/build-devcontainer
@@ -19,9 +20,14 @@ project_files:
   - scripts/claude-bootstrap.sh
   - claude-managed-settings.json
   - copilot-managed-config.json
+  - .agents
+  - web-build
 post_install_actions:
   - rm -rf ../.devcontainer
   - mv .devcontainer ..
+  - mkdir -p ../.agents
+  - cp -a .agents/. ../.agents/
+  - rm -rf .agents
   - echo "🚀 DDEV Agents installed."
   - echo "👉 Run 'ddev restart' to build the Agents container."
   - echo "👉 Then reopen VS Code in the Container."

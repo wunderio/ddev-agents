@@ -1,0 +1,195 @@
+# Drush CLI Tool Configuration
+# Drupal site management via command-line
+
+tools:
+  - name: drush
+    enabled: true
+    description: |
+      Run Drush commands in the web container. "command" is the bare command name only;
+      flags and operands go in "args" as separate array elements. Never use --db-url.
+      For cache rebuild use drush_cr; for PHP eval use drush_php_eval.
+      Blocked: cr, sql-drop, sql-sync, site-install (use dedicated tools).
+
+    type: command
+    command_template: "vendor/bin/drush {command} {args}"
+    ssh_target: "web"
+    ssh_user: "${DDEV_SSH_USER}"
+    working_dir: "/var/www/html"
+
+    default_args:
+      args: []
+
+    # Blocked commands with suggested alternatives
+    disallowed_commands:
+      - pattern: sql-sync
+      - pattern: site-install
+        suggested_tool: drush_site_install
+      - pattern: sql-drop
+        suggested_tool: drush_sql_drop
+      - pattern: cr
+        suggested_tool: drush_cr
+      - pattern: cache-rebuild
+        suggested_tool: drush_cr
+
+    # Validate arguments
+    validation_rules:
+      - field: command
+        pattern: "\\s"
+        message: >
+          Invalid command: must be a bare Drush command name with no spaces.
+          Put flags and operands in the args array instead.
+          Valid: {"command": "pm:enable", "args": ["mcp", "-y"]}.
+          Invalid: {"command": "en mcp"}.
+      - pattern: "--db-url"
+        message: >
+          --db-url is not permitted. Drush auto-configures the database connection
+          from settings.php. Adding --db-url causes SSL/TLS errors.
+
+    input_schema:
+      type: object
+      properties:
+        command:
+          type: string
+          description: Bare Drush command name — no flags, no operands, no spaces.
+        args:
+          type: array
+          items:
+            type: string
+          description: Each flag, option, or operand as a separate array element. Never include --db-url.
+      required:
+        - command
+
+  - name: drush_cr
+    enabled: true
+    description: Clear and rebuild all Drupal caches.
+
+    type: command
+    command_template: "vendor/bin/drush cache:rebuild"
+    ssh_target: "web"
+    ssh_user: "${DDEV_SSH_USER}"
+    working_dir: "/var/www/html"
+
+    input_schema:
+      type: object
+      properties: {}
+
+  - name: drush_sql_drop
+    enabled: true
+    description: Drop the Drupal database. Safe alternative to drush sql-drop.
+
+    type: command
+    command_template: "vendor/bin/drush sql-drop -y --extra=--skip-ssl 2>&1 || true"
+    ssh_target: "web"
+    ssh_user: "${DDEV_SSH_USER}"
+    working_dir: "/var/www/html"
+
+    input_schema:
+      type: object
+      properties: {}
+
+  - name: drush_site_install
+    enabled: true
+    description: |
+      Install or reinstall Drupal. Run drush_sql_drop first.
+      Controls installation profile and admin credentials.
+
+    type: command
+    command_template: "vendor/bin/drush site-install {profile} -y --account-name={admin_name} --account-pass={admin_pass} --extra=--skip-ssl"
+    ssh_target: "web"
+    ssh_user: "${DDEV_SSH_USER}"
+    working_dir: "/var/www/html"
+
+    default_args:
+      profile: "standard"
+      admin_name: "admin"
+      admin_pass: "admin"
+
+    input_schema:
+      type: object
+      properties:
+        profile:
+          type: string
+          description: Installation profile (default "standard", e.g. "minimal", "standard")
+          default: "standard"
+        admin_name:
+          type: string
+          description: Administrator username (default "admin")
+          default: "admin"
+        admin_pass:
+          type: string
+          description: Administrator password (default "admin")
+          default: "admin"
+
+  - name: logs_watchdog
+    enabled: true
+    description: |
+      Read Drupal watchdog (dblog) logs. Requires dblog module.
+      Default 100 entries, max 1000.
+
+    type: command
+    command_template: "vendor/bin/drush watchdog:show --count={lines}"
+    ssh_target: "web"
+    ssh_user: "${DDEV_SSH_USER}"
+    working_dir: "/var/www/html"
+    default_args:
+      lines: "100"
+
+    input_schema:
+      type: object
+      properties:
+        lines:
+          type: integer
+          description: Number of entries to return (default 100, max 1000)
+
+  - name: drush_php_eval
+    enabled: true
+    description: |
+      Execute PHP code with full Drupal bootstrap. Use /var/www/html/ paths (not /workspace/).
+      Max 16 384 chars — use drush_php_script for longer code.
+      Prefer dedicated drush tools for operations that have them.
+
+    type: command
+    command_template: "vendor/bin/drush php:eval {code}"
+    ssh_target: "web"
+    ssh_user: "${DDEV_SSH_USER}"
+    working_dir: "/var/www/html"
+    max_arg_length: 16384
+
+    input_schema:
+      type: object
+      properties:
+        code:
+          type: string
+          description: PHP code to execute (without <?php tags). Max 16 384 chars.
+      required:
+        - code
+
+  - name: drush_php_script
+    enabled: true
+    description: |
+      Run a PHP script file with Drupal bootstrap. Script path relative to /var/www/html/.
+      /workspace/ in agents container = /var/www/html/ in web container.
+      Script args available as $extra inside the script.
+
+    type: command
+    command_template: "vendor/bin/drush php:script {script_path} {args}"
+    ssh_target: "web"
+    ssh_user: "${DDEV_SSH_USER}"
+    working_dir: "/var/www/html"
+
+    default_args:
+      args: []
+
+    input_schema:
+      type: object
+      properties:
+        script_path:
+          type: string
+          description: Path to the PHP script. Relative paths resolve from /var/www/html/.
+        args:
+          type: array
+          items:
+            type: string
+          description: Extra arguments passed to the script; available as $extra inside the script.
+      required:
+        - script_path

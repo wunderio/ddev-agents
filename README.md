@@ -66,10 +66,33 @@ In PhpStorm:
 
 ## Features
 
--   **Isolated Python Environment**: Pre-built devcontainer image based on `mcr.microsoft.com/devcontainers/python:3-bookworm` with PHP 8.4 and Composer pre-installed.
--   **Integrated Tools**: Node.js, yq, GH CLI, Git and common utilities installed via devcontainer features.
+-   **Isolated Python Environment**: Based on `mcr.microsoft.com/devcontainers/python:3-bookworm`.
+-   **Integrated Tools**: Pre-installed Node.js, GH CLI, Git and common utilities.
+-   **Dynamic Versions**: PHP and Node.js versions are read from `.ddev/config.yaml` and injected at build time.
+-   **SSH-Based Tool Execution**: MCP tools execute commands in the DDEV web container via SSH (no Docker socket access).
+-   **MCP Tool Configs**: Pre-configured tools for Drush, Composer, Drupal MCP proxy, and log access (`.agents/tools-config/`).
 -   **GitHub Copilot (Agent Mode)**: Includes the `copilot` CLI extension.
 -   **Secure Authentication**: Uses your host's `DDEV_AGENTS_GH_TOKEN` automatically, so you never have to type credentials inside the container.
+
+## Architecture
+
+The agents container communicates with the DDEV web container via SSH:
+
+-   **Ephemeral SSH Keys**: Ed25519 keypair generated fresh on every `ddev start`, distributed via `docker exec`
+-   **Automatic User Detection**: The DDEV user is detected from `/var/www/html` ownership in the web container
+-   **No Docker Socket**: The agents container has no access to the Docker daemon — all command execution goes through SSH
+-   **Security Hardened**: All Linux capabilities dropped, privilege escalation disabled
+
+### MCP Tools
+
+The `.agents/tools-config/` directory contains YAML definitions for tools exposed via the [wdrmcp](https://github.com/wunderio/wdrmcp) MCP server:
+
+-   **Drush**: Site management, cache rebuild, site install, PHP eval, watchdog logs
+-   **Composer**: Install, update, require dependencies
+-   **Logs**: Nginx access/error logs, PHP-FPM logs
+-   **Drupal MCP**: Proxy to Drupal's built-in MCP server endpoint
+
+See `.agents/README.md` for details on adding custom tools and configuring credentials.
 
 ## Claude Code (Teams) — CLI
 
@@ -120,8 +143,8 @@ ddev claude --help
 -   Claude Code auth state is stored in a Docker volume (`ddev-agents-claude-state`)
 -   This volume uses a fixed name, so auth is **shared across all DDEV projects** on the same machine
 -   Auth survives container rebuilds (`ddev restart`) — you only need to log in once
--   PHP and Composer are **pre-built** into the container image; Node.js, yq, and other tools are installed via devcontainer features during `ddev build-devcontainer`
--   The Claude Code binary is **not** persisted (re-installed on each container rebuild to pick up updates)
+-   PHP, Composer, and Claude Code are installed via devcontainer features during `ddev build-devcontainer`
+-   The Claude Code binary is baked into the image — run `ddev build-devcontainer` to update it
 
 ### Security
 
@@ -312,7 +335,7 @@ To fix the issue you need to remove the old images from your system by running t
 **sudo not working inside the container:**
 > `sudo` is intentionally disabled via `no-new-privileges` for security hardening.
 > If you need root access, run from your host terminal:
-> `docker exec -u root -it ddev-<project>-agents bash`
+> `ddev ssh -s agents -u root`
 
 **Troubleshooting for macOS**:
 

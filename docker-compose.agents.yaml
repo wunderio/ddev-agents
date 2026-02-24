@@ -30,6 +30,7 @@ services:
       - claude-state:/home/vscode/.claude-state
       - copilot-state:/home/vscode/.copilot-state
       - ./copilot-managed-config.json:/home/vscode/.copilot-managed-config.json:ro
+      - ./claude-managed-settings.json:/etc/claude-code/managed-settings.json:ro
     working_dir: /workspace
     environment:
       - DDEV_PROJECT=${DDEV_PROJECT}
@@ -44,3 +45,5 @@ volumes:
     name: ddev-${DDEV_PROJECT}-claude-state
   copilot-state:
     name: ddev-${DDEV_PROJECT}-copilot-state
+  ddev-global-cache:
+    external: true

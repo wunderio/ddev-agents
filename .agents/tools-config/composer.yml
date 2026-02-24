@@ -1,0 +1,104 @@
+# Composer PHP Dependency Manager Configuration
+# Defines available composer commands
+
+tools:
+  - name: composer_install
+    enabled: true
+    description: |
+      Install dependencies from composer.lock file.
+
+      Always run in the Drupal project directory (/var/www/html).
+      Installs packages with versions locked in composer.lock.
+
+    type: command
+    command_template: "composer install {args}"
+    ssh_target: "web"
+    ssh_user: "${DDEV_SSH_USER}"
+    working_dir: "/var/www/html"
+    default_args:
+      args: ["--no-interaction"]
+
+    input_schema:
+      type: object
+      properties:
+        args:
+          type: array
+          items:
+            type: string
+          description: >
+            Each flag or option as a separate array element.
+            The default ["--no-interaction"] is always included unless overridden.
+            Examples: ["--no-dev"], ["--no-dev", "--optimize-autoloader"].
+
+  - name: composer_update
+    enabled: true
+    description: |
+      Update dependencies to latest versions.
+
+      Always run in the Drupal project directory (/var/www/html).
+      Updates packages according to version constraints in composer.json.
+
+    type: command
+    command_template: "composer update {package} {args}"
+    ssh_target: "web"
+    ssh_user: "${DDEV_SSH_USER}"
+    working_dir: "/var/www/html"
+    default_args:
+      package: ""
+      args: ["--no-interaction"]
+
+    input_schema:
+      type: object
+      properties:
+        package:
+          type: string
+          description: >
+            Package name to update (e.g., "drupal/pathauto").
+            Omit or leave empty to update all packages.
+        args:
+          type: array
+          items:
+            type: string
+          description: >
+            Each flag or option as a separate array element.
+            Examples: ["--with-dependencies"], ["--no-dev", "--prefer-dist"].
+
+  - name: composer_require
+    enabled: true
+    description: |
+      Add one or more dependencies to composer.json.
+
+      Always run in the Drupal project directory (/var/www/html).
+      Adds packages and updates composer.lock.
+
+      Supports multiple packages in a single call — prefer this over separate
+      calls when installing related packages together.
+
+    type: command
+    command_template: "composer require {packages} {args}"
+    ssh_target: "web"
+    ssh_user: "${DDEV_SSH_USER}"
+    working_dir: "/var/www/html"
+    default_args:
+      args: ["--no-interaction"]
+
+    input_schema:
+      type: object
+      properties:
+        packages:
+          type: array
+          items:
+            type: string
+          description: >
+            One or more package names to require.
+            Examples: ["drupal/pathauto"], ["drupal/mcp_server", "drupal/tool:^1.0"].
+            Each element is shell-escaped and joined with spaces in the command.
+        args:
+          type: array
+          items:
+            type: string
+          description: >
+            Each flag or option as a separate array element.
+            Examples: ["--with-all-dependencies"], ["--no-dev", "--prefer-dist"].
+      required:
+        - packages
