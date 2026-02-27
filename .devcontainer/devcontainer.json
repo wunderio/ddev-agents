@@ -62,6 +62,6 @@
       ]
     }
   },
-  "postAttachCommand": "echo '✅ Secure Agents Environment Active'",
+  "postAttachCommand": "STATE=/home/vscode/.claude-state && mkdir -p $STATE/claude $STATE/config && chmod 700 $STATE && { [ ! -e ~/.claude.json ] || [ -L ~/.claude.json ] || mv ~/.claude.json $STATE/claude.json.bak.$(date +%s); } && { [ ! -e ~/.claude ] || [ -L ~/.claude ] || mv ~/.claude $STATE/claude.bak.$(date +%s); } && { [ -s $STATE/claude.json ] || echo '{}' > $STATE/claude.json; } && ln -sfn $STATE/claude.json ~/.claude.json && ln -sfn $STATE/claude ~/.claude && echo '✅ Secure Agents Environment Active'",
   "remoteUser": "vscode"
 }

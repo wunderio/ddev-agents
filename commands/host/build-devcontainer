@@ -1,11 +1,19 @@
-#ddev-generated
 #!/bin/bash
+#ddev-generated
 
 ## Description: Build devcontainer image before DDEV starts
-## Usage: build-devcontainer
-## Example: "ddev build-devcontainer"
+## Usage: build-devcontainer [--no-cache]
+## Example: "ddev build-devcontainer" or "ddev build-devcontainer --no-cache"
+## Flags: [{"Name":"no-cache","Usage":"Skip Docker build cache (forces full rebuild)"}]
 
 set -e
+
+NO_CACHE=""
+for arg in "$@"; do
+    case "$arg" in
+        --no-cache) NO_CACHE="--no-cache" ;;
+    esac
+done
 
 echo "🔨 Building devcontainer image..."
 
@@ -54,13 +62,18 @@ sed -e "s|__PHP_VERSION__|${PHP_VERSION}|g" \
     -e "s|__PROJECT_NAME__|${DDEV_PROJECT}|g" \
     "$BUILD_CONFIG_TEMPLATE" > "$BUILD_CONFIG"
 
-echo "🚀 Building with devcontainer CLI (features will be installed)..."
+if [ -n "$NO_CACHE" ]; then
+    echo "🚀 Building with devcontainer CLI (no cache — full rebuild)..."
+else
+    echo "🚀 Building with devcontainer CLI (features will be installed)..."
+fi
 
 # Build using devcontainer CLI - this will install all the features
 devcontainer build \
     --workspace-folder "$PROJECT_ROOT" \
     --image-name "ddev-${DDEV_PROJECT}-devcontainer:latest" \
-    --config "$BUILD_CONFIG"
+    --config "$BUILD_CONFIG" \
+    $NO_CACHE
 
 BUILD_EXIT_CODE=$?
 

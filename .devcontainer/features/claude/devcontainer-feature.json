@@ -4,6 +4,7 @@
   "name": "Claude Code CLI",
   "description": "Installs the Claude Code CLI via the official installer (claude.ai/install.sh)",
   "installsAfter": [
-    "ghcr.io/devcontainers/features/common-utils"
+    "ghcr.io/devcontainers/features/common-utils",
+    "ghcr.io/devcontainers/features/node"
   ]
 }
