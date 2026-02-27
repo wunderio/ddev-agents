@@ -15,6 +15,12 @@ else
   exit 1
 fi
 
+# Pre-install the MCP proxy so it is available offline (npx will find the
+# global copy instead of downloading from the registry).
+echo "Installing @wunderio/wdrmcp globally..."
+npm install -g @wunderio/wdrmcp
+echo "wdrmcp installed: $(npm ls -g @wunderio/wdrmcp --depth=0 2>/dev/null || echo 'unknown')"
+
 # Remove any config/state files created during installation.
 # Auth and state must live in the Docker volume mounted at runtime,
 # not baked into the image — otherwise the symlink setup in ddev claude
