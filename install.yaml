@@ -9,8 +9,8 @@ project_files:
   - .devcontainer/devcontainer.json
   - .devcontainer/devcontainer.build.json
   - commands/host/build-devcontainer
-  - commands/host/create-sensitive-path-mounts
   - commands/host/copilot
+  - commands/host/create-sensitive-path-mounts
   - commands/host/set-up
   - copilot-managed-config.json
   - .agents
