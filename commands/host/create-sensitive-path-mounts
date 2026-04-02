@@ -21,6 +21,7 @@ set -e
 
 # Navigate to project root.
 PROJECT_ROOT="$(cd "$(dirname "$0")/../../.." && pwd)"
+REAL_ROOT=$(realpath "$PROJECT_ROOT")
 cd "$PROJECT_ROOT"
 
 # Define the config file and target file paths.
@@ -57,9 +58,27 @@ while read -r sensitive_path; do
     fi
 
     HOST_PATH="${PROJECT_ROOT}/$sensitive_path"
+
+    # Ensure the path is not a directory.
     if [ -d "$HOST_PATH" ]; then
         echo "⚠️ Skipping invalid path (directories not supported): $sensitive_path"
         continue
+    fi
+
+    # Ensure the path is not a symlink.
+    if [ -L "$HOST_PATH" ]; then
+        echo "⚠️ Skipping invalid path (symlinks are not allowed for security): $sensitive_path"
+        continue
+    fi
+
+    # Ensure the parent directory hasn't escaped the root directory.
+    PARENT_DIR=$(dirname "$HOST_PATH")
+    if [ -d "$PARENT_DIR" ]; then
+        REAL_PARENT=$(realpath "$PARENT_DIR")
+        if [[ "$REAL_PARENT" != "$REAL_ROOT"* ]]; then
+            echo "⚠️ Skipping invalid path (path resolves outside of project root): $sensitive_path"
+            continue
+        fi
     fi
 
     # Ensure host file exists (Docker requirement for bind mounts).
