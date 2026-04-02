@@ -83,7 +83,7 @@ If your project contains sensitive files (such as `.env` or `.ddev/.env.*`), you
 
 To configure this protection:
 
-1. **Define the paths**: List the file paths (relative to the project root) under the `sensitive_data_paths` property in `.ddev/agents.sensitive-paths.yaml`.
+1. **Define the paths**: List the file paths (relative to the project root) under the `sensitive_paths` property in `.ddev/agents.sensitive-paths.yaml`.
 2. **Update gitignore**: Ensure the actual sensitive files being masked are added to your `.gitignore` file to prevent accidental exposure.
 
 How it works under the hood:
