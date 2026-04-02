@@ -9,7 +9,7 @@ PROJECT_ROOT="$(cd "$(dirname "$0")/../../.." && pwd)"
 cd "$PROJECT_ROOT"
 
 # Define the config file and target file paths.
-CONFIG_FILE="${PROJECT_ROOT}/.ddev/agents.sensitive-paths.yaml"
+CONFIG_FILE="${PROJECT_ROOT}/.ddev/agents.sensitive-paths.txt"
 TARGET_FILE="${PROJECT_ROOT}/.ddev/docker-compose.agents-sensitive-paths.yaml"
 
 # Check if config file exists.
@@ -19,30 +19,17 @@ if [ ! -f "$CONFIG_FILE" ]; then
     exit 0
 fi
 
-# Check if python3 is available.
-if ! command -v python3 >/dev/null 2>&1; then
-    echo "❌ Error: python3 is not installed or not in your PATH. Cannot parse $CONFIG_FILE."
-    exit 1
-fi
-
-# Check if "yaml" package (PyYAML) is installed.
-if ! python3 -c "import yaml" >/dev/null 2>&1; then
-    echo "❌ Error: The Python 'yaml' package (PyYAML) is not installed."
-    exit 1
-fi
-
-# Extract the sensitive paths using Python.
-PATHS=$(python3 -c "
-import yaml
-with open('$CONFIG_FILE', 'r') as f:
-    data = yaml.safe_load(f)
-    if isinstance(data, dict) and 'sensitive_paths' in data:
-        print('\n'.join(data['sensitive_paths']))
-" 2>/dev/null || true)
+# Extract the sensitive paths from the config .txt file.
+# Ignore comments (#) and empty lines.
+PATHS=$(while IFS= read -r line || [ -n "$line" ]; do
+    # Ignore comments or empty lines
+    [[ "$line" =~ ^#.*$ ]] || [ -z "$line" ] && continue
+    echo "$line"
+done < "$CONFIG_FILE")
 
 # Check if paths are read.
 if [ -z "$PATHS" ]; then
-    echo "⚠️ No sensitive paths defined or cannot read YAML. Removing $TARGET_FILE."
+    echo "⚠️ No sensitive paths defined in $CONFIG_FILE. Removing $TARGET_FILE."
     rm -f "$TARGET_FILE"
     exit 0
 fi
@@ -103,4 +90,3 @@ else
     echo "⚠️ No valid sensitive paths found. Removing $TARGET_FILE."
     rm -f "$TARGET_FILE"
 fi
-

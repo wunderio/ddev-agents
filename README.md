@@ -79,11 +79,11 @@ The [Wunder Quality System](https://quality.wunder.io) MCP server gives AI agent
 
 ### Step 4: Define the sensitive paths (Recommended)
 
-If your project contains sensitive files (such as `.env` or `.ddev/.env.*`), you can make them inaccessible to AI agents by masking them.
+If your project contains sensitive files (such as `.env` or `.ddev/.env.web`), you can make them inaccessible to AI agents by masking them.
 
 To configure this protection:
 
-1. **Define the paths**: List the file paths (relative to the project root) under the `sensitive_paths` property in `.ddev/agents.sensitive-paths.yaml`.
+1. **Define the paths**: List the file paths (relative to the project root, one per line) in `.ddev/agents.sensitive-paths.txt`.
 2. **Update gitignore**: Ensure the actual sensitive files being masked are added to your `.gitignore` file to prevent accidental exposure.
 
 How it works under the hood:
@@ -94,7 +94,7 @@ How it works under the hood:
    Docker to mount each path to `/dev/null`.
 3. **Devcontainer behavior**: Inside the devcontainer, these sensitive files will appear as empty, read-only files, effectively masking
    their actual content from the environment.
-4. **Sensitive path configuration is gitignored**: Both `.ddev/agents.sensitive-paths.yaml` and `.ddev/docker-compose.agents-sensitive-paths.yaml` 
+4. **Sensitive path configuration is gitignored**: Both `.ddev/agents.sensitive-paths.txt` and `.ddev/docker-compose.agents-sensitive-paths.yaml` 
    are automatically added to your .gitignore file. This ensures that your personal masking rules remain local to your machine.
 
 ### Step 5: Start DDEV

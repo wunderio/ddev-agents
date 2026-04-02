@@ -3,7 +3,7 @@ version: 1.0.0
 description: "Standardized AI Agent environment for Wunder.io projects."
 
 project_files:
-  - agents.sensitive-paths.yaml
+  - agents.sensitive-paths.txt
   - docker-compose.agents.yaml
   - config.agents.yaml
   - .devcontainer/devcontainer.json
@@ -21,15 +21,19 @@ post_install_actions:
   - mkdir -p ../.agents
   - cp -a .agents/. ../.agents/
   - rm -rf .agents
+  # Add the sensitive path config file and the Docker compose file to .gitignore.
   - |
+      GITIGNORE="../.gitignore"
       FILES_TO_IGNORE=(
-        ".ddev/agents.sensitive-paths.yaml"
+        ".ddev/agents.sensitive-paths.txt"
         ".ddev/docker-compose.agents-sensitive-paths.yaml"
       )
-      touch .gitignore
+      touch "$GITIGNORE"
       for FILE in "${FILES_TO_IGNORE[@]}"; do
-        if ! grep -Fxq "$FILE" .gitignore; then
-          echo "$FILE" >> .gitignore
+        if ! grep -Fxq "$FILE" "$GITIGNORE"; then
+          # Add a newline before the first entry if needed.
+          [ -n "$(tail -c1 "$GITIGNORE" 2>/dev/null)" ] && echo "" >> "$GITIGNORE"
+          echo "$FILE" >> "$GITIGNORE"
           echo "✅ Added $FILE to .gitignore"
         fi
       done
