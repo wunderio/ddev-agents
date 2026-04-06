@@ -77,7 +77,7 @@ The [Wunder Quality System](https://quality.wunder.io) MCP server gives AI agent
     source ~/.zshrc
     ```
 
-### Step 4: Define the sensitive paths (Recommended)
+### Step 4: Mask sensitive files from AI agents (Strongly recommended)
 
 If your project contains sensitive files (such as `.env` or `.ddev/.env.web`), you can make them inaccessible to AI agents by masking them.
 
