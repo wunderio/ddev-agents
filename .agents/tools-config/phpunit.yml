@@ -50,11 +50,9 @@ tools:
       type: object
       properties:
         names:
-          type: array
-          items:
-            type: string
+          type: string
           description: >
-            Names of test suites to run.
+            Name of the test suite to run, or a comma-separated list of test suite names.
       required:
         - names
 
