@@ -29,6 +29,9 @@ tools:
     # but report it as "checks failed".
     # Note that the default value is [1].
     # success_exit_codes: [1]
+    input_schema:
+      type: object
+      properties: {}
 
   - name: grumphp_check_php_compatibility
     enabled: true
@@ -44,6 +47,9 @@ tools:
     use_env_vars_in_remote: false
     default_args:
       tasks: ["php_compatibility"]
+    input_schema:
+      type: object
+      properties: {}
 
   - name: grumphp_check_php_syntax
     enabled: true
@@ -59,6 +65,9 @@ tools:
     use_env_vars_in_remote: false
     default_args:
       tasks: ["php_check_syntax"]
+    input_schema:
+      type: object
+      properties: {}
 
   - name: grumphp_check_phpcs
     enabled: true
@@ -74,6 +83,9 @@ tools:
     use_env_vars_in_remote: false
     default_args:
       tasks: ["phpcs"]
+    input_schema:
+      type: object
+      properties: {}
 
   - name: grumphp_check_phpstan
     enabled: true
@@ -89,6 +101,9 @@ tools:
     use_env_vars_in_remote: false
     default_args:
       tasks: ["php_stan"]
+    input_schema:
+      type: object
+      properties: {}
 
   - name: grumphp_lint_yaml
     enabled: true
@@ -104,6 +119,9 @@ tools:
     use_env_vars_in_remote: false
     default_args:
       tasks: ["yaml_lint"]
+    input_schema:
+      type: object
+      properties: {}
 
   - name: grumphp_lint_json
     enabled: true
@@ -119,3 +137,6 @@ tools:
     use_env_vars_in_remote: false
     default_args:
       tasks: ["json_lint"]
+    input_schema:
+      type: object
+      properties: {}

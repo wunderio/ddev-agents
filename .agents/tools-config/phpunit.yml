@@ -11,6 +11,9 @@ tools:
     ssh_target: "web"
     ssh_user: "${DDEV_SSH_USER}"
     working_dir: "/var/www/html"
+    input_schema:
+      type: object
+      properties: {}
 
   - name: phpunit_list_all_test_files
     enabled: true
@@ -22,6 +25,9 @@ tools:
     ssh_target: "web"
     ssh_user: "${DDEV_SSH_USER}"
     working_dir: "/var/www/html"
+    input_schema:
+      type: object
+      properties: {}
 
   - name: phpunit_run_all_tests
     enabled: true
@@ -33,6 +39,9 @@ tools:
     ssh_target: "web"
     ssh_user: "${DDEV_SSH_USER}"
     working_dir: "/var/www/html"
+    input_schema:
+      type: object
+      properties: {}
 
   - name: phpunit_run_test_suites
     enabled: true

@@ -9,14 +9,16 @@ tools:
       Build the frontend application.
 
     type: command
-    command_template: "npm {args}"
+    command_template: "npm run build"
     ssh_target: "web"
     ssh_user: "${DDEV_SSH_USER}"
     working_dir: "/var/www/html"
     timeout: 10_000 # ms
     use_env_vars_in_remote: false
-    default_args:
-      args: ["run", "build"]
+    default_args: {}
+    input_schema:
+      type: object
+      properties: {}
 
   - name: npm_run_test
     enabled: true
@@ -24,7 +26,7 @@ tools:
       Run tests defined in the project's package.json.
 
     type: check
-    command_template: "npm {args}"
+    command_template: "npm run test"
     ssh_target: "web"
     ssh_user: "${DDEV_SSH_USER}"
     working_dir: "/var/www/html"
@@ -33,5 +35,7 @@ tools:
     # but report them as "checks failed".
     success_exit_codes: [1, 2]
     use_env_vars_in_remote: false
-    default_args:
-      args: ["run", "test"]
+    default_args: {}
+    input_schema:
+      type: object
+      properties: {}
