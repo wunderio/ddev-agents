@@ -84,6 +84,6 @@ tools:
           items:
             type: string
           description: >
-            Paths to unit tests files to run.
+            Paths to unit test files to run.
       required:
         - files
