@@ -23,7 +23,7 @@ tools:
     ssh_target: "web"
     ssh_user: "${DDEV_SSH_USER}"
     working_dir: "/var/www/html"
-    timeout: 120_000 # ms
+    timeout: 120 # seconds
     use_env_vars_in_remote: false
     # Consider exit code 1 as the command succeeding,
     # but report it as "checks failed".
@@ -43,7 +43,7 @@ tools:
     ssh_target: "web"
     ssh_user: "${DDEV_SSH_USER}"
     working_dir: "/var/www/html"
-    timeout: 60_000 # ms
+    timeout: 60 # seconds
     use_env_vars_in_remote: false
     default_args:
       tasks: ["php_compatibility"]
@@ -61,7 +61,7 @@ tools:
     ssh_target: "web"
     ssh_user: "${DDEV_SSH_USER}"
     working_dir: "/var/www/html"
-    timeout: 60_000 # ms
+    timeout: 60 # seconds
     use_env_vars_in_remote: false
     default_args:
       tasks: ["php_check_syntax"]
@@ -79,7 +79,7 @@ tools:
     ssh_target: "web"
     ssh_user: "${DDEV_SSH_USER}"
     working_dir: "/var/www/html"
-    timeout: 60_000 # ms
+    timeout: 60 # seconds
     use_env_vars_in_remote: false
     default_args:
       tasks: ["phpcs"]
@@ -97,7 +97,7 @@ tools:
     ssh_target: "web"
     ssh_user: "${DDEV_SSH_USER}"
     working_dir: "/var/www/html"
-    timeout: 60_000 # ms
+    timeout: 60 # seconds
     use_env_vars_in_remote: false
     default_args:
       tasks: ["php_stan"]
@@ -115,7 +115,7 @@ tools:
     ssh_target: "web"
     ssh_user: "${DDEV_SSH_USER}"
     working_dir: "/var/www/html"
-    timeout: 60_000 # ms
+    timeout: 60 # seconds
     use_env_vars_in_remote: false
     default_args:
       tasks: ["yaml_lint"]
@@ -133,7 +133,7 @@ tools:
     ssh_target: "web"
     ssh_user: "${DDEV_SSH_USER}"
     working_dir: "/var/www/html"
-    timeout: 60_000 # ms
+    timeout: 60 # seconds
     use_env_vars_in_remote: false
     default_args:
       tasks: ["json_lint"]
