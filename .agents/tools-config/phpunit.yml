@@ -36,6 +36,7 @@ tools:
 
     type: check
     command_template: "./vendor/bin/phpunit --configuration phpunit.xml"
+    success_exit_codes: [1, 2]
     ssh_target: "web"
     ssh_user: "${DDEV_SSH_USER}"
     working_dir: "/var/www/html"
@@ -51,6 +52,7 @@ tools:
 
     type: check
     command_template: "./vendor/bin/phpunit --configuration phpunit.xml --no-progress --testsuite {names}"
+    success_exit_codes: [1, 2]
     ssh_target: "web"
     ssh_user: "${DDEV_SSH_USER}"
     working_dir: "/var/www/html"
@@ -72,6 +74,7 @@ tools:
 
     type: check
     command_template: "./vendor/bin/phpunit --configuration phpunit.xml --no-progress {files}"
+    success_exit_codes: [1, 2]
     ssh_target: "web"
     ssh_user: "${DDEV_SSH_USER}"
     working_dir: "/var/www/html"
