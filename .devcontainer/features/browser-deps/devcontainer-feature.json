@@ -1,0 +1,6 @@
+{
+  "id": "browser-deps",
+  "version": "1.0.0",
+  "name": "Headless Browser & Media Dependencies",
+  "description": "Apt packages needed to run a headless Chromium-family browser (Playwright/Puppeteer) plus ffmpeg."
+}
