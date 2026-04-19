@@ -25,6 +25,7 @@
       "installZsh": true,
       "configureZshAsDefaultShell": true
     },
-    "./features/claude": {}
+    "./features/claude": {},
+    "./features/browser-deps": {}
   }
 }

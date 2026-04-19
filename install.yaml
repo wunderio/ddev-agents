@@ -13,6 +13,8 @@ project_files:
   - .devcontainer/devcontainer.build.json
   - .devcontainer/features/claude/devcontainer-feature.json
   - .devcontainer/features/claude/install.sh
+  - .devcontainer/features/browser-deps/devcontainer-feature.json
+  - .devcontainer/features/browser-deps/install.sh
   - commands/host/claude
   - commands/host/copilot
   - commands/host/build-devcontainer
