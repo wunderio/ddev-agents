@@ -55,6 +55,27 @@ if [ -f "$DEVCONTAINER_JSON" ] && grep -q "__PHP_VERSION__\|__NODE_VERSION__\|__
     rm -f "${DEVCONTAINER_JSON}.bak"
 fi
 
+# ==============================================================================
+# Verify host Node.js (needed for devcontainer CLI and npx -y in MCP configs)
+# ==============================================================================
+NODE_MIN=22
+if ! command -v node &>/dev/null; then
+    echo "❌ Node.js is not installed. Version ${NODE_MIN}+ is required."
+    exit 1
+fi
+if ! HOST_NODE_MAJOR=$(node -e 'process.stdout.write(process.versions.node.split(".")[0])' 2>/dev/null); then
+    echo "❌ Failed to determine Node.js version. Version ${NODE_MIN}+ is required."
+    exit 1
+fi
+if ! [[ "$HOST_NODE_MAJOR" =~ ^[0-9]+$ ]]; then
+    echo "❌ Unexpected Node.js version format: $(node --version). Version ${NODE_MIN}+ is required."
+    exit 1
+fi
+if [ "$HOST_NODE_MAJOR" -lt "$NODE_MIN" ]; then
+    echo "❌ Node.js $(node --version) is too old. Version ${NODE_MIN}+ is required."
+    exit 1
+fi
+
 # Ensure devcontainer CLI is available
 if ! command -v devcontainer &>/dev/null; then
     echo "⚠️  devcontainer CLI not found. Installing..."
@@ -158,6 +179,7 @@ fi
 # auto-enabled without manual @mcp gallery installation.
 WDRMCP_VERSION=$(docker exec "$AGENTS_CONTAINER" bash -c "npm ls -g @wunderio/wdrmcp --json 2>/dev/null | jq -r '.dependencies[\"@wunderio/wdrmcp\"].version // empty'" || echo "")
 [ -z "$WDRMCP_VERSION" ] && WDRMCP_VERSION="0.1.17"
+SUPERGATEWAY_VERSION=$(docker exec "$AGENTS_CONTAINER" npm view supergateway version 2>/dev/null || echo "3.4.3")
 docker exec -i -u vscode "$AGENTS_CONTAINER" bash -c '
     mkdir -p ~/.vscode-server/data/User
     cat > ~/.vscode-server/data/User/mcp.json
@@ -176,6 +198,20 @@ docker exec -i -u vscode "$AGENTS_CONTAINER" bash -c '
       },
       "gallery": "https://mcp.wdr.io",
       "version": "${WDRMCP_VERSION}"
+    },
+    "wunder-quality-system": {
+      "type": "stdio",
+      "command": "npx",
+      "args": [
+        "-y",
+        "supergateway@${SUPERGATEWAY_VERSION}",
+        "--streamableHttp",
+        "https://quality.wunder.io/mcp",
+        "--oauth2Bearer",
+        "${WQS_MCP_API_KEY}"
+      ],
+      "gallery": "https://mcp.wdr.io",
+      "version": "1.0.0"
     }
   },
   "inputs": []
@@ -197,6 +233,13 @@ if [ -d "$PROJECT_ROOT/.agents/tools-config" ]; then
         "set -a; export DDEV_SSH_USER=${DDEV_USER:-}; [ -f /workspace/.env ] && source /workspace/.env; exec npx -y @wunderio/wdrmcp --tools-config /workspace/.agents/tools-config"
       ],
       "tools": ["*"]
+    },
+    "wunder-quality-system": {
+      "type": "http",
+      "url": "https://quality.wunder.io/mcp",
+      "headers": {
+        "Authorization": "Bearer \${WQS_MCP_API_KEY}"
+      }
     }
   }
 }
@@ -223,15 +266,24 @@ WDRMCP_SERVER=$(jq -n \
         "env": {"DDEV_SSH_USER": $ssh_user}
     }')
 
+# Build the wunder-quality-system server object
+WQS_SERVER=$(jq -n \
+    '{
+        "type": "http",
+        "url": "https://quality.wunder.io/mcp",
+        "headers": {"Authorization": "Bearer ${WQS_MCP_API_KEY}"}
+    }')
+
 if [ -f "$MCP_JSON" ]; then
-    # Merge wdrmcp into existing .mcp.json (preserves other servers)
-    jq --argjson server "$WDRMCP_SERVER" '.mcpServers.wdrmcp = $server' \
+    # Merge servers into existing .mcp.json (preserves other user-defined servers)
+    jq --argjson wdrmcp "$WDRMCP_SERVER" --argjson wqs "$WQS_SERVER" \
+        '.mcpServers.wdrmcp = $wdrmcp | .mcpServers["wunder-quality-system"] = $wqs' \
         "$MCP_JSON" > "${MCP_JSON}.tmp" && mv "${MCP_JSON}.tmp" "$MCP_JSON"
     echo "✅ Claude Code MCP config merged into existing .mcp.json"
 else
     # Create fresh .mcp.json
-    jq -n --argjson server "$WDRMCP_SERVER" \
-        '{"mcpServers": {"wdrmcp": $server}}' > "$MCP_JSON"
+    jq -n --argjson wdrmcp "$WDRMCP_SERVER" --argjson wqs "$WQS_SERVER" \
+        '{"mcpServers": {"wdrmcp": $wdrmcp, "wunder-quality-system": $wqs}}' > "$MCP_JSON"
     echo "✅ Claude Code MCP config written to .mcp.json"
 
     # Add to .gitignore only when we created the file (if the user already
