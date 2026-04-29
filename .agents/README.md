@@ -29,6 +29,12 @@ An MCP server that gives AI agents tools to run commands in DDEV containers via 
    - Open VS Code Copilot chat
    - Use tools like `drush`, `composer_install`, `logs_nginx_access`, etc.
    - All tools connect via SSH automatically
+  
+4. **Updating:**
+   Restart of the wdrcmp server is needed to refresh the available tools. For example when:
+   - Adding .env file
+   - Changing the tool configs
+   - Adding a new MCP tool through Drupal MCP
 
 ## How SSH Works
 
@@ -96,7 +102,7 @@ DRUPAL_MCP_USER=admin
 DRUPAL_MCP_PASS=admin
 ```
 
-This file is preserved across addon reinstalls (non-destructive merge). The wdrmcp server needs to be (re)ostarted after the env file has been added.
+This file is preserved across addon reinstalls (non-destructive merge).
 
 ## Available Tool Types
 
