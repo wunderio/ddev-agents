@@ -96,7 +96,7 @@ DRUPAL_MCP_USER=admin
 DRUPAL_MCP_PASS=admin
 ```
 
-This file is preserved across addon reinstalls (non-destructive merge).
+This file is preserved across addon reinstalls (non-destructive merge). The wdrmcp server needs to be (re)ostarted after the env file has been added.
 
 ## Available Tool Types
 
