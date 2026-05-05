@@ -236,8 +236,12 @@ fi
 docker exec -u vscode "$AGENTS_CONTAINER" bash -c '
     # If ~/.copilot already exists and is not our symlink, migrate its contents
     if [ -e ~/.copilot ] && [ ! -L ~/.copilot ]; then
-        cp -rT ~/.copilot /workspace/.copilot 2>/dev/null || true
-        rm -rf ~/.copilot
+        if cp -rT ~/.copilot /workspace/.copilot 2>/dev/null; then
+            rm -rf ~/.copilot
+        else
+            echo "⚠️  Could not migrate ~/.copilot to /workspace/.copilot — original left in place" >&2
+            exit 1
+        fi
     fi
     ln -sfn /workspace/.copilot ~/.copilot
 '

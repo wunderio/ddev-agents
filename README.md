@@ -185,9 +185,9 @@ winget install Microsoft.DevContainerCLI
 
 -   **devcontainer CLI**: `ddev copilot` uses `devcontainer exec --container-id` to run inside the DDEV-managed container. `--container-id` bypasses devcontainer's own container-discovery (which only finds containers started via `devcontainer up`), while still reading `devcontainer.json` to inject `remoteEnv` — including `GH_TOKEN` from your host's `DDEV_AGENTS_GH_TOKEN`
 -   **Pre-installed**: Copilot CLI is installed via devcontainer feature during container build
--   **Persistent state**: Configuration is stored in a Docker volume (`ddev-${DDEV_PROJECT}-copilot-state`)
--   **Project-specific state**: Each DDEV project has its own isolated configuration volume
--   **State survives rebuilds**: Configuration survives container rebuilds (`ddev restart`)
+-   **Persistent state**: Configuration is stored in `/workspace/.copilot` (a bind-mounted directory inside your project workspace). Inside the container, `~/.copilot` is a symlink to `/workspace/.copilot`, set up by `ddev set-up`
+-   **Project-specific state**: Each DDEV project has its own isolated state under its project workspace
+-   **State survives rebuilds**: Configuration survives container rebuilds (`ddev restart`) because it lives in the host workspace, not the container
 -   **Authentication**: Uses the `GH_TOKEN` environment variable injected via devcontainer CLI from your host's `DDEV_AGENTS_GH_TOKEN`
 -   **Always up-to-date**: Copilot CLI is reinstalled during container rebuilds to ensure latest version
 
@@ -200,12 +200,16 @@ winget install Microsoft.DevContainerCLI
 
 ### Resetting Copilot State
 
-To clear all configuration data for the current project:
+Copilot session data is persisted in the `.copilot/` directory inside your project workspace (bind-mounted into the container as `~/.copilot`).
+
+To clear all state, delete or empty the directory from your host machine:
+
 ```bash
-# Replace ${DDEV_PROJECT} with your project name (from .ddev/config.yaml)
-docker volume rm ddev-${DDEV_PROJECT}-copilot-state
+# Remove all Copilot state for this project
+rm -rf .copilot/
 ```
-Copilot will re-initialize on the next run.
+
+The directory will be recreated automatically on the next `ddev set-up` run (which also re-creates the `~/.copilot` → `/workspace/.copilot` symlink inside the container). Copilot will re-initialize on the next run.
 
 ## Wunder Quality System MCP
 
