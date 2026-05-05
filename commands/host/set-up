@@ -217,10 +217,37 @@ MCPJSON
 echo "✅ VS Code MCP gallery config pre-populated (wdrmcp@${WDRMCP_VERSION})"
 
 # ==============================================================================
+# Persist Copilot session data via workspace symlink
+# ==============================================================================
+# /workspace is a bind-mount that survives ddev restarts, so symlinking
+# ~/.copilot → /workspace/.copilot gives free persistence without volume
+# ownership issues. The directory is created here on the host (as the repo
+# owner) so it exists before the symlink is made inside the container.
+mkdir -p "$PROJECT_ROOT/.copilot"
+
+GITIGNORE="$PROJECT_ROOT/.gitignore"
+if [ -f "$GITIGNORE" ] && grep -qx '\.copilot' "$GITIGNORE"; then
+    echo "✅ .copilot already in .gitignore"
+elif [ -f "$GITIGNORE" ]; then
+    echo '.copilot' >> "$GITIGNORE"
+    echo "✅ Added .copilot to .gitignore"
+fi
+
+docker exec -u vscode "$AGENTS_CONTAINER" bash -c '
+    # If ~/.copilot already exists and is not our symlink, migrate its contents
+    if [ -e ~/.copilot ] && [ ! -L ~/.copilot ]; then
+        cp -rT ~/.copilot /workspace/.copilot 2>/dev/null || true
+        rm -rf ~/.copilot
+    fi
+    ln -sfn /workspace/.copilot ~/.copilot
+'
+echo "✅ ~/.copilot symlinked to /workspace/.copilot"
+
+# ==============================================================================
 # Generate Copilot CLI MCP config
 # ==============================================================================
 if [ -d "$PROJECT_ROOT/.agents/tools-config" ]; then
-    docker exec -i -u vscode "$AGENTS_CONTAINER" bash -c 'mkdir -p ~/.copilot && cat > ~/.copilot/mcp-config.json' <<MCPCONFIG
+    docker exec -i -u vscode "$AGENTS_CONTAINER" bash -c 'cat > ~/.copilot/mcp-config.json' <<MCPCONFIG
 {
   "mcpServers": {
     "wdrmcp": {
