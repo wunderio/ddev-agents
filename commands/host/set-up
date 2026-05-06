@@ -104,8 +104,9 @@ echo "🔐 Setting up SSH connectivity between agents and web containers..."
 if ! docker ps --format '{{.Names}}' | grep -q "^${WEB_CONTAINER}$"; then
     echo "⚠️  Web container not running, skipping SSH setup."
 else
-    # Detect DDEV user from web container
-    DDEV_USER=$(docker exec "$WEB_CONTAINER" stat -c '%U' /var/www/html 2>/dev/null || echo "")
+    # Detect DDEV user from the container's configured UID (set by DDEV in docker-compose)
+    CONTAINER_UID=$(docker inspect --format '{{.Config.User}}' "$WEB_CONTAINER" 2>/dev/null | cut -d: -f1)
+    DDEV_USER=$(docker exec "$WEB_CONTAINER" getent passwd "$CONTAINER_UID" 2>/dev/null | cut -d: -f1)
     if [ -z "$DDEV_USER" ]; then
         echo "⚠️  Could not detect DDEV user, skipping SSH setup."
     else
