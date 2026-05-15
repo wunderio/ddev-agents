@@ -27,7 +27,6 @@ services:
     volumes:
       - ../:/workspace:cached
       - ddev-global-cache:/mnt/ddev-global-cache
-      - copilot-state:/home/vscode/.copilot-state
       - ./copilot-managed-config.json:/home/vscode/.copilot-managed-config.json:ro
     working_dir: /workspace
     environment:
@@ -40,7 +39,5 @@ services:
       ssh-shell: zsh
 
 volumes:
-  copilot-state:
-    name: ddev-${DDEV_PROJECT}-copilot-state
   ddev-global-cache:
     external: true
