@@ -263,23 +263,42 @@ echo "✅ ~/.copilot symlinked to /workspace/.copilot"
 # Generate Copilot CLI MCP config
 # ==============================================================================
 if [ -d "$PROJECT_ROOT/.agents/tools-config" ]; then
+    # Each server's local config is hashed into a fingerprint and matched
+    # against the registry's fingerprint for that server. The CLI infers the
+    # fingerprint from `command` + `args` (must surface the npm package id) or
+    # from a `type: "http"` URL — anything wrapping the call (e.g. bash -c)
+    # makes the fingerprint uncomputable and the server is blocked under
+    # "Registry only" policy. Each entry below mirrors the shape used in the
+    # registry at https://mcp.wdr.io so fingerprints match.
     docker exec -i -u vscode "$AGENTS_CONTAINER" bash -c 'cat > ~/.copilot/mcp-config.json' <<MCPCONFIG
 {
   "mcpServers": {
     "wdrmcp": {
-      "command": "bash",
+      "type": "stdio",
+      "command": "npx",
       "args": [
-        "-c",
-        "set -a; export DDEV_SSH_USER=${DDEV_USER:-}; [ -f /workspace/.env ] && source /workspace/.env; exec npx -y @wunderio/wdrmcp --tools-config /workspace/.agents/tools-config"
+        "-y",
+        "@wunderio/wdrmcp",
+        "--tools-config",
+        "/workspace/.agents/tools-config"
       ],
+      "env": {
+        "DDEV_SSH_USER": "${DDEV_USER:-}"
+      },
       "tools": ["*"]
     },
     "wunder-quality-system": {
-      "type": "http",
-      "url": "https://quality.wunder.io/mcp",
-      "headers": {
-        "Authorization": "Bearer \${WQS_MCP_API_KEY}"
-      }
+      "type": "stdio",
+      "command": "npx",
+      "args": [
+        "-y",
+        "supergateway",
+        "--streamableHttp",
+        "https://quality.wunder.io/mcp",
+        "--oauth2Bearer",
+        "\${WQS_MCP_API_KEY}"
+      ],
+      "tools": ["*"]
     }
   }
 }
