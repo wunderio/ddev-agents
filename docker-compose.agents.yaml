@@ -27,7 +27,12 @@ services:
     volumes:
       - ../:/workspace:cached
       - ddev-global-cache:/mnt/ddev-global-cache
-      - claude-state:/home/vscode/.claude-state
+      # Host bind-mount for Claude Code auth state. Per-project (organised
+      # under ~/.ddev-agents/projects/<project>/ on the host) so chat history
+      # and the cwd-keyed projects map in ~/.claude.json don't collide across
+      # DDEV projects — all of which see cwd=/workspace inside the container.
+      # The host directory is created by config.agents.yaml's pre-start hook.
+      - ${HOME}/.ddev-agents/projects/${DDEV_PROJECT}/claude:/home/vscode/.claude-state
       - ./copilot-managed-config.json:/home/vscode/.copilot-managed-config.json:ro
       - ./claude-managed-settings.json:/etc/claude-code/managed-settings.json:ro
     working_dir: /workspace
@@ -42,7 +47,5 @@ services:
       ssh-shell: zsh
 
 volumes:
-  claude-state:
-    name: ddev-${DDEV_PROJECT}-claude-state
   ddev-global-cache:
     external: true

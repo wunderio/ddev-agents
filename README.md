@@ -258,11 +258,11 @@ ddev claude --help
 
 ### How Auth Persistence Works
 
--   Claude Code auth state is stored in a Docker volume (`ddev-agents-claude-state`)
--   This volume uses a fixed name, so auth is **shared across all DDEV projects** on the same machine
--   Auth survives container rebuilds (`ddev restart`) — you only need to log in once
--   PHP, Composer, and Claude Code are installed via devcontainer features during `ddev build-devcontainer`
--   The Claude Code binary is baked into the image — run `ddev build-devcontainer` to update it
+-   Claude Code auth state is stored on your host machine under `~/.ddev-agents/projects/<ddev-project>/claude/`, bind-mounted into the container at `/home/vscode/.claude-state`. Inside the container, `~/.claude` and `~/.claude.json` are symlinks into that directory, set up by `ddev set-up` (which runs automatically as a `post-start` hook on every `ddev start` / `ddev restart`).
+-   The host directory is created by a `pre-start` hook so it exists before Docker bind-mounts it (avoids root-owned directories on Linux).
+-   State is **per-project**: each DDEV project has its own directory under `~/.ddev-agents/projects/`, so chat history, TODOs, and per-project settings stay isolated. Log in once per project; auth then persists across container rebuilds.
+-   Auth survives container rebuilds (`ddev restart`) because it lives on the host, not inside the container.
+-   PHP, Composer, and Claude Code are installed via devcontainer features during `ddev build-devcontainer`. The Claude Code binary is baked into the image — run `ddev build-devcontainer` to update it.
 
 ### Security
 
@@ -272,11 +272,14 @@ ddev claude --help
 
 ### Resetting Claude State
 
-To clear all auth and configuration data:
+Claude Code auth state is persisted under `~/.ddev-agents/projects/<ddev-project>/claude/` on your host machine. To clear all auth and configuration data for a project, delete that directory and restart:
+
 ```bash
-docker volume rm ddev-agents-claude-state
+rm -rf ~/.ddev-agents/projects/<ddev-project>/claude
+ddev restart
 ```
-Then run `ddev claude login` again to re-authenticate.
+
+`ddev restart` triggers the `pre-start` hook (which recreates the empty host directory) and the `post-start` hook (which re-initialises the in-container symlinks and an empty `claude.json`). Then run `ddev claude login` to re-authenticate.
 
 ## Wunder Quality System MCP
 

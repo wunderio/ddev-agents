@@ -13,29 +13,18 @@ if ! docker inspect --format='{{.State.Running}}' "$CONTAINER" 2>/dev/null | gre
   exit 1
 fi
 
-# Fix volume ownership if needed (Docker creates named volumes as root).
-# cap_drop:ALL means even "docker exec -u root" cannot chown inside the
-# hardened container (CAP_CHOWN is dropped). A throwaway container runs
-# outside the security boundary to set correct ownership once.
-if ! docker exec "$CONTAINER" test -w /home/vscode/.claude-state 2>/dev/null; then
-  VSCODE_UID=$(docker exec "$CONTAINER" id -u)
-  VSCODE_GID=$(docker exec "$CONTAINER" id -g)
-  docker run --rm -v "ddev-${DDEV_PROJECT}-claude-state:/state" busybox \
-    chown "${VSCODE_UID}:${VSCODE_GID}" /state
-fi
-
-# Ensure persistent state symlinks exist (idempotent, handles container rebuilds)
-docker exec "$CONTAINER" bash -c '
+# Defensive symlink check (normally handled by `ddev set-up` post-start hook).
+# Runs in milliseconds. Migration of non-symlink state is intentionally NOT
+# done here — that's set-up's job. Here we only ensure the symlinks exist
+# on top of a clean state dir.
+docker exec -u vscode "$CONTAINER" bash -c '
   STATE="/home/vscode/.claude-state"
-  mkdir -p "$STATE/claude" "$STATE/config"
-  chmod 700 "$STATE"
-  # Back up any existing non-symlink files before replacing
-  [ ! -e "$HOME/.claude.json" ] || [ -L "$HOME/.claude.json" ] || mv "$HOME/.claude.json" "$STATE/claude.json.bak.$(date +%s)"
-  [ ! -e "$HOME/.claude" ] || [ -L "$HOME/.claude" ] || mv "$HOME/.claude" "$STATE/claude.bak.$(date +%s)"
-  # Initialize claude.json with valid empty JSON if it does not exist
-  [ -s "$STATE/claude.json" ] || echo "{}" > "$STATE/claude.json"
-  ln -sfn "$STATE/claude.json" "$HOME/.claude.json"
-  ln -sfn "$STATE/claude" "$HOME/.claude"
+  if [ ! -L "$HOME/.claude.json" ] || [ ! -L "$HOME/.claude" ]; then
+    mkdir -p "$STATE/claude" "$STATE/config"
+    [ -s "$STATE/claude.json" ] || echo "{}" > "$STATE/claude.json"
+    ln -sfn "$STATE/claude.json" "$HOME/.claude.json"
+    ln -sfn "$STATE/claude"      "$HOME/.claude"
+  fi
 '
 
 # TTY detection for interactive vs headless
