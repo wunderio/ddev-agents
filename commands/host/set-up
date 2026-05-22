@@ -263,6 +263,58 @@ docker exec -u vscode "$AGENTS_CONTAINER" bash -c '
 echo "✅ ~/.copilot symlinked to /workspace/.copilot"
 
 # ==============================================================================
+# Persist Claude Code auth state via host bind-mount
+# ==============================================================================
+# $HOME/.ddev-agents/projects/${DDEV_PROJECT}/claude on the host is bind-mounted
+# to /home/vscode/.claude-state in the container (see docker-compose.agents.yaml).
+# The host directory is created by the pre-start hook in config.agents.yaml so
+# it exists before the bind-mount attaches at container start. Inside the
+# container, ~/.claude and ~/.claude.json are symlinked into the state dir so
+# all Claude CLI writes hit the host directory and persist across restarts.
+# State is per-project (one dir per DDEV project on the host) — Claude Code
+# keys per-project state by cwd, and every project's cwd is /workspace, so
+# sharing across projects would mix chat history and per-project settings.
+#
+# Known untested case: Linux host where the user's UID is not 1000. The
+# bind-mounted directory will be owned by the host UID, but `vscode` inside
+# the container is UID 1000, so the `mkdir` / `chmod` below may EACCES. This
+# addon currently has no Linux users; if one shows up, the likely fix is to
+# either match the container UID to the host user or chown the state dir
+# from a privileged throwaway container (the old named-volume approach did
+# the latter; see git history for `commands/host/claude` before this refactor).
+
+docker exec -u vscode "$AGENTS_CONTAINER" bash -c '
+    STATE="/home/vscode/.claude-state"
+    mkdir -p "$STATE/claude" "$STATE/config"
+    chmod 700 "$STATE"
+
+    # Migrate any pre-existing non-symlink ~/.claude / ~/.claude.json into the
+    # state dir before symlinking. Without this, a fresh container would shadow
+    # whatever is in the state dir with empty defaults.
+    if [ -e ~/.claude.json ] && [ ! -L ~/.claude.json ]; then
+        if ! mv ~/.claude.json "$STATE/claude.json"; then
+            echo "⚠️  Could not migrate ~/.claude.json into $STATE — original left in place" >&2
+            exit 1
+        fi
+    fi
+    if [ -e ~/.claude ] && [ ! -L ~/.claude ]; then
+        if cp -rT ~/.claude "$STATE/claude" && rm -rf ~/.claude; then
+            :
+        else
+            echo "⚠️  Could not migrate ~/.claude into $STATE — original left in place" >&2
+            exit 1
+        fi
+    fi
+
+    # Initialise claude.json with valid empty JSON if missing.
+    [ -s "$STATE/claude.json" ] || echo "{}" > "$STATE/claude.json"
+
+    ln -sfn "$STATE/claude.json" ~/.claude.json
+    ln -sfn "$STATE/claude"      ~/.claude
+'
+echo "✅ ~/.claude and ~/.claude.json symlinked to /home/vscode/.claude-state"
+
+# ==============================================================================
 # Generate Copilot CLI MCP config
 # ==============================================================================
 if [ -d "$PROJECT_ROOT/.agents/tools-config" ]; then
