@@ -4,6 +4,7 @@
 
 hooks:
   pre-start:
+    - exec-host: .ddev/commands/host/create-sensitive-path-mounts
     - exec-host: .ddev/commands/host/build-devcontainer
 
   post-start:
