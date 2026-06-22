@@ -7,6 +7,19 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+
+- Opt-in dependency overlay (`docker-compose.agents-volumes.yaml`) to mitigate macOS
+  host freezes under endpoint-security software (e.g. Bitdefender EDR). Moves heavy
+  trees (`vendor/`, `node_modules/`) onto VM-local Docker named volumes so the agents
+  container's runtime file I/O is never adjudicated on the host. No-op by default;
+  opt-in per project, with enablement steps in the file header and README
+  "Troubleshooting".
+- Companion guidance for DDEV's Mutagen startup scan — the second macOS file-event
+  source: ignore `vendor/` / `node_modules/` in `.ddev/mutagen/mutagen.yml` so the
+  per-`ddev start` host-side scan stops re-walking those trees. Documented in the same
+  README entry and the volumes file's header.
+
 ## [1.1.2] - 2026-03-16
 
 ### Changed

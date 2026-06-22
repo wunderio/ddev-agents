@@ -80,6 +80,54 @@
 #   ownership, then install) to repopulate.
 # - Volumes are namespaced per DDEV project, so projects never share dependency
 #   trees (consistent with how this addon isolates per-project state).
+#
+# ----------------------------------------------------------------------------
+# COMPANION MITIGATION — DDEV's Mutagen scan (the startup freeze)
+# ----------------------------------------------------------------------------
+# WHY
+# ---
+# The overlay above stops file events from the AGENTS container's bind mount
+# (runtime: composer / phpcs / phpstan / npm walks). It does NOT stop DDEV's own
+# Mutagen sync. On macOS the web service does not bind-mount the project — it
+# two-way-syncs the host project directory to a VM-local volume, and on every
+# `ddev start` Mutagen scans the ENTIRE non-ignored host tree, stat-ing and
+# content-hashing every file to build its snapshot (the "Starting Mutagen sync
+# process.........." phase). That is another burst of host file events the
+# endpoint-security agent adjudicates synchronously. vendor/ and node_modules/
+# are the bulk of that scan and are NOT in DDEV's default Mutagen ignore list, so
+# they are re-walked on every start. This lever and the overlay above are
+# complementary, not redundant: the overlay shadows the agents mount, while this
+# trims what Mutagen scans on the host — different container, mount and mechanism.
+#
+# HOW TO ENABLE
+# -------------
+# mutagen.yml is #ddev-generated DDEV core — this addon does not manage it, and
+# there is no docker-compose-style merge for it, so this step is manual:
+# 1. Edit .ddev/mutagen/mutagen.yml and REMOVE its first line, `#ddev-generated`
+#    — otherwise DDEV regenerates the file and silently drops your change (the
+#    file's own header documents this).
+# 2. Add YOUR heavy trees under sync.defaults.ignore.paths (gitignore-like syntax,
+#    same as the entries already in that file). Match your own layout, e.g.:
+#        - "/vendor"        # leading slash = anchored to the project (sync) root
+#        - "node_modules"   # no slash = any dir named node_modules, at any depth
+# 3. `ddev mutagen reset` (required after editing this file).
+# 4. Repopulate inside the container: `ddev composer install` (plus any in-
+#    container npm installs your build needs). DDEV's post-start hook also runs
+#    composer install when vendor/ is missing, so a restart largely self-heals.
+#
+# CONSEQUENCES
+# ------------
+# - vendor/ and node_modules/ are no longer mirrored to the host. Fine for the
+#   all-in-container model this addon targets (composer / npm / agents all run in
+#   DDEV). A host-side IDE / composer / phpcs that expects these on the host would
+#   NOT see them — do not apply this if you rely on a host-side toolchain.
+# - The web container reads these trees from its own Mutagen volume; the agents
+#   container reads its own named-volume copies (if you enabled the overlay
+#   above). The two are independent — repopulate in each place after a
+#   composer.lock / package-lock.json change.
+# - Your existing host copies become orphaned (Mutagen stops touching them but
+#   won't delete them). Safe to `rm -rf` on the host once the container copies
+#   are confirmed good.
 
 services:
   agents:
