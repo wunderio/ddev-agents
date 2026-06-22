@@ -352,14 +352,27 @@ ERROR: Feature "Common Utilities" (ghcr.io/devcontainers/features/common-utils) 
 > add-on) adjudicates those events synchronously — when an agent walks a large tree
 > (`composer`/`phpcs`/`phpstan`/`phpunit`/`grumphp` over `vendor/`, build tooling over
 > `node_modules/`) it can saturate a core in the security extension and stall the
-> machine.
+> machine. There are **two** independent triggers — the **runtime** agent walk above,
+> and DDEV's **startup** Mutagen scan — and each needs its own, complementary fix.
 >
-> Mitigation: move the heavy dependency directories off the bind mount and onto
-> Docker named volumes (VM-local, never touched by the host filesystem). This is
-> opt-in and per-project because dependency layouts vary — see
+> **1. Runtime (agent walks).** Move the heavy dependency directories off the bind
+> mount and onto Docker named volumes (VM-local, never touched by the host
+> filesystem). This is opt-in and per-project because dependency layouts vary — see
 > `.ddev/docker-compose.agents-volumes.yaml` for the rationale and step-by-step
 > enablement (including the one-time `composer install` / `npm install` bootstrap the
-> volumes need). For full coverage, the Docker file-server processes can also be
-> excluded in the endpoint-security policy by whoever owns that console.
+> volumes need).
+>
+> **2. Startup (DDEV's Mutagen scan).** On macOS DDEV syncs the project into the web
+> container with Mutagen, which re-scans the entire host tree on every `ddev start`
+> (the "Starting Mutagen sync process" phase) — a second burst the overlay above does
+> **not** cover. Add your heavy trees to `.ddev/mutagen/mutagen.yml` under
+> `sync.defaults.ignore.paths`, **removing that file's first `#ddev-generated` line**
+> so DDEV doesn't regenerate over it, then `ddev mutagen reset`. Full steps are in the
+> "COMPANION MITIGATION" section of `.ddev/docker-compose.agents-volumes.yaml`. (Skip
+> this if a host-side IDE/toolchain needs those trees on disk.)
+>
+> Applied together, the two levers cover both event sources from the project side. As
+> optional belt-and-suspenders, the Docker file-server processes can also be excluded
+> in the endpoint-security policy by whoever owns that console.
 
 
