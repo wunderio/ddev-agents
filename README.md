@@ -345,4 +345,21 @@ ERROR: Feature "Common Utilities" (ghcr.io/devcontainers/features/common-utils) 
 > }
 > ```
 
+**macOS: the whole host freezes / stutters while agents run commands:**
+> On macOS, Docker serves the `../:/workspace` bind mount through a host-side file
+> server (virtiofsd), so every file the container opens under `/workspace` becomes a
+> real macOS file event. Endpoint-security software (e.g. Bitdefender with the EDR
+> add-on) adjudicates those events synchronously — when an agent walks a large tree
+> (`composer`/`phpcs`/`phpstan`/`phpunit`/`grumphp` over `vendor/`, build tooling over
+> `node_modules/`) it can saturate a core in the security extension and stall the
+> machine.
+>
+> Mitigation: move the heavy dependency directories off the bind mount and onto
+> Docker named volumes (VM-local, never touched by the host filesystem). This is
+> opt-in and per-project because dependency layouts vary — see
+> `.ddev/docker-compose.agents-volumes.yaml` for the rationale and step-by-step
+> enablement (including the one-time `composer install` / `npm install` bootstrap the
+> volumes need). For full coverage, the Docker file-server processes can also be
+> excluded in the endpoint-security policy by whoever owns that console.
+
 
