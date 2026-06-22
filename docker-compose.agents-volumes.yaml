@@ -1,0 +1,95 @@
+# Move heavy dependency directories off the host bind mount.
+# (macOS endpoint-security / host-freeze mitigation — opt-in, per project.)
+#
+# WHY
+# ---
+# On macOS, Docker Desktop serves bind-mounted paths (../:/workspace) through a
+# host-side file server (virtiofsd). Every file the agents container opens under
+# /workspace becomes a real file event on the macOS filesystem. Endpoint-security
+# software (e.g. Bitdefender with the EDR add-on) adjudicates many of those events
+# synchronously, so a tool that walks tens of thousands of files — composer / phpcs
+# / phpstan / phpunit / grumphp over vendor/, or npm / build tooling over
+# node_modules/ — can saturate a CPU core inside the security extension and stall
+# the whole machine, not just the container.
+#
+# A Docker *named volume* mounted over a sub-path of the bind mount shadows it: I/O
+# in that directory stays inside the VM's virtual disk and never crosses to the
+# macOS filesystem, so the endpoint-security agent never sees it. Source files stay
+# bind-mounted (low file count, low churn, and they must round-trip to your editor);
+# only the high-volume, host-invisible-OK dependency trees move into volumes.
+#
+# This file is intentionally NOT managed by the ddev-agents addon (no
+# #ddev-generated header), so `ddev addon get wunderio/ddev-agents` will not
+# overwrite your edits — it is installed once and then yours to customise. DDEV
+# auto-merges every .ddev/docker-compose.*.yaml file, and Compose merges the
+# `volumes:` lists by container mount path, so the overlays declared here are
+# appended to the base `../:/workspace` mount rather than replacing it (the
+# container runtime orders mounts by destination depth, so a volume at
+# /workspace/vendor correctly shadows that sub-path of the bind mount). Dependency
+# layouts vary per project (vendor/ is usually at the root, but node_modules/ often
+# lives in a theme subdir, and there may be more than one), so the overlays are
+# opt-in rather than shipped active — by default this file is a no-op
+# (`volumes: []`) and changes nothing until you fill it in.
+#
+# SCOPE — what this does and does NOT fix.
+# This overlay removes the single largest source of host file events: the
+# dependency-tree walks (composer / phpcs / phpstan / phpunit over vendor/, build
+# tooling over node_modules/). It deliberately does NOT move your source files or
+# .git, so ordinary editing, git, grep/find and other source I/O still cross the
+# bind mount and are still adjudicated by the host. If that residual I/O remains a
+# problem after enabling these overlays, the complementary fix is to exclude
+# Docker's file-server processes (com.docker.backend, virtiofsd, the QEMU helper)
+# in the endpoint-security policy — a console / policy change owned by whoever
+# administers the security tooling, not a change in this repo.
+#
+# HOW TO ENABLE
+# -------------
+# 1. Replace `volumes: []` below with a list of overlay mounts that match YOUR
+#    project's layout, and declare a matching top-level named volume for each
+#    (see the commented example blocks).
+# 2. `ddev restart`.
+# 3. CLAIM OWNERSHIP (once per overlay path) — a brand-new named volume's root is
+#    owned by root:root, but the agents container runs as the unprivileged `vscode`
+#    user and is security-hardened (cap_drop: ALL, no-new-privileges), so it cannot
+#    chown the mount itself. Hand each overlay path to `vscode` from a root shell in
+#    the container — root access is via `docker exec -u root` (see
+#    docker-compose.agents.yaml). `<project>` is your DDEV project name (run
+#    `ddev describe` if unsure):
+#        docker exec -u root ddev-<project>-agents chown vscode:vscode /workspace/vendor
+#        # repeat for each overlay path, e.g. a node_modules one:
+#        docker exec -u root ddev-<project>-agents chown vscode:vscode /workspace/web/themes/custom/MYTHEME/node_modules
+#    Skip this and the install in step 4 fails with "permission denied".
+# 4. BOOTSTRAP — the volumes start EMPTY (the volume shadows the host copy, so a
+#    host-side `composer install` does NOT populate it). Populate them from inside
+#    the agents container, as `vscode`, using the same toolchain you use for QA
+#    (the agents container must actually have that toolchain installed — php/
+#    composer, node/npm — for this to help):
+#        ddev exec -s agents bash -lc 'cd /workspace && composer install'
+#        # for each node_modules overlay, run npm install in its directory:
+#        ddev exec -s agents bash -lc 'cd /workspace/<theme-path> && npm install'
+#    Re-run these after a composer.lock / package-lock.json change — the agents
+#    container's copy is independent of the web container's.
+#
+# CONSEQUENCES
+# ------------
+# - The overlaid directories are NOT visible on the host filesystem. This is fine
+#   for the devcontainer model (the IDE runs inside the container); a separate
+#   host-side IDE pointed at the tree would not see them.
+# - Named volumes survive `ddev restart` but are removed by `ddev delete`. After a
+#   delete the volume comes back empty and root-owned, so re-run steps 3–4 (claim
+#   ownership, then install) to repopulate.
+# - Volumes are namespaced per DDEV project, so projects never share dependency
+#   trees (consistent with how this addon isolates per-project state).
+
+services:
+  agents:
+    # Opt in by replacing [] with your overlay list, e.g.:
+    #   volumes:
+    #     - agents-vendor:/workspace/vendor
+    #     - agents-node-modules:/workspace/web/themes/custom/MYTHEME/node_modules
+    volumes: []
+
+# Declare one top-level named volume per overlay above, e.g.:
+# volumes:
+#   agents-vendor:
+#   agents-node-modules:
