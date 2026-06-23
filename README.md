@@ -367,9 +367,13 @@ ERROR: Feature "Common Utilities" (ghcr.io/devcontainers/features/common-utils) 
 > (the "Starting Mutagen sync process" phase) — a second burst the overlay above does
 > **not** cover. Add your heavy trees to `.ddev/mutagen/mutagen.yml` under
 > `sync.defaults.ignore.paths`, **removing that file's first `#ddev-generated` line**
-> so DDEV doesn't regenerate over it, then `ddev mutagen reset`. Full steps are in the
-> "COMPANION MITIGATION" section of `.ddev/docker-compose.agents-volumes.yaml`. (Skip
-> this if a host-side IDE/toolchain needs those trees on disk.)
+> so DDEV doesn't regenerate over it, then `ddev mutagen reset`. For a Composer-managed
+> Drupal site the heavy trees are not just `vendor`/`node_modules` but also the
+> git-ignored, Composer-installed code — `web/core`, `web/modules/contrib`,
+> `web/themes/contrib`, `web/profiles/contrib` and `web/libraries` (excluding core +
+> contrib removes the bulk of the scan). Full steps and the ready-to-paste list are in
+> the "COMPANION MITIGATION" section of `.ddev/docker-compose.agents-volumes.yaml`.
+> (Skip this if a host-side IDE/toolchain needs those trees on disk.)
 >
 > Applied together, the two levers cover both event sources from the project side. As
 > optional belt-and-suspenders, the Docker file-server processes can also be excluded

@@ -16,8 +16,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   opt-in per project, with enablement steps in the file header and README
   "Troubleshooting".
 - Companion guidance for DDEV's Mutagen startup scan — the second macOS file-event
-  source: ignore `vendor/` / `node_modules/` in `.ddev/mutagen/mutagen.yml` so the
-  per-`ddev start` host-side scan stops re-walking those trees. Documented in the same
+  source: ignore the heavy git-ignored trees in `.ddev/mutagen/mutagen.yml` so the
+  per-`ddev start` host-side scan stops re-walking them. For Drupal that is `vendor/`,
+  `node_modules/` and the Composer-installed code — `web/core`,
+  `web/{modules,themes,profiles}/contrib`, `web/libraries`. Documented in the same
   README entry and the volumes file's header.
 
 ## [1.1.2] - 2026-03-16
