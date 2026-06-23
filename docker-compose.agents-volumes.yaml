@@ -107,9 +107,21 @@
 #    — otherwise DDEV regenerates the file and silently drops your change (the
 #    file's own header documents this).
 # 2. Add YOUR heavy trees under sync.defaults.ignore.paths (gitignore-like syntax,
-#    same as the entries already in that file). Match your own layout, e.g.:
-#        - "/vendor"        # leading slash = anchored to the project (sync) root
-#        - "node_modules"   # no slash = any dir named node_modules, at any depth
+#    same as the entries already in that file). Match your own layout — for a typical
+#    Composer-managed Drupal site (docroot web/; use docroot/ if that is your layout)
+#    these are the git-ignored trees Composer installs, none of which a host-side
+#    editor needs when the IDE runs in the container:
+#        - "/vendor"               # Composer libraries (anchored to the project root)
+#        - "node_modules"          # any dir named node_modules, at any depth
+#        - "/web/core"             # Drupal core   — Composer-installed, git-ignored
+#        - "/web/modules/contrib"  # contrib modules
+#        - "/web/themes/contrib"   # contrib themes
+#        - "/web/profiles/contrib" # contrib profiles
+#        - "/web/libraries"        # front-end libraries (asset-packagist)
+#    core + contrib are the bulk of the scan — in one downstream Drupal project,
+#    excluding them cut Mutagen's synced set ~92% (32k files / 416 MB -> 2.7k / 37 MB).
+#    NOTE: the public files dir (e.g. /web/sites/default/files) is synced via DDEV's
+#    upload_dirs bind mount, not Mutagen — do not add it to this ignore list.
 # 3. `ddev mutagen reset` (required after editing this file).
 # 4. Repopulate inside the container: `ddev composer install` (plus any in-
 #    container npm installs your build needs). DDEV's post-start hook also runs
@@ -117,7 +129,7 @@
 #
 # CONSEQUENCES
 # ------------
-# - vendor/ and node_modules/ are no longer mirrored to the host. Fine for the
+# - The ignored trees are no longer mirrored to the host. Fine for the
 #   all-in-container model this addon targets (composer / npm / agents all run in
 #   DDEV). A host-side IDE / composer / phpcs that expects these on the host would
 #   NOT see them — do not apply this if you rely on a host-side toolchain.
