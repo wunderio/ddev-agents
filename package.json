@@ -1,0 +1,22 @@
+{
+  "name": "@wunderio/ddev-agents-monorepo",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "description": "Monorepo for Wunder.io agentic AI environments: DDEV add-on and standalone npm CLI.",
+  "workspaces": [
+    "packages/*"
+  ],
+  "scripts": {
+    "build": "npm run build --workspaces",
+    "test": "npm test --workspaces",
+    "lint": "npm run lint --workspaces",
+    "sync-core-to-ddev": "node scripts/sync-core-to-ddev.js"
+  },
+  "devDependencies": {
+    "@types/node": "^22.0.0"
+  },
+  "engines": {
+    "node": ">=20"
+  }
+}

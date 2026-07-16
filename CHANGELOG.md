@@ -7,6 +7,27 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+
+- New `@wunderio/node-agents` npm package for node/npm projects without DDEV.
+- Shared `@wunderio/agents-core` package containing devcontainer templates,
+  managed security config, MCP config templates, version resolution, and
+  Copilot invocation helpers.
+- npm-family MCP tools (`node_install`, `node_ci`, `node_run`, `node_run_build`,
+  `node_run_test`, `node_run_lint`, `npx`, `node_logs`) with lockfile-based
+  package-manager detection (npm/yarn/pnpm).
+- CLI commands: `agents build`, `agents set-up`, `agents copilot`, `agents start`,
+  `agents stop`, `agents npm`, `agents npx`, `agents exec`.
+- Monorepo workspaces (`packages/core`, `packages/npm-cli`) alongside the
+  existing DDEV add-on files at the repository root.
+- Build-time sync script (`npm run sync-core-to-ddev`) to regenerate DDEV
+  add-on devcontainer configs and managed config from shared core templates.
+
+### Changed
+
+- Converted repository to npm workspaces with a root `package.json`.
+- Updated README with node/npm flavour documentation.
+
 ## [1.1.2] - 2026-03-16
 
 ### Changed

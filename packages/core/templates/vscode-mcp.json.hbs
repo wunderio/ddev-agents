@@ -1,0 +1,31 @@
+{
+  "servers": {
+    "wdrmcp": {
+      "type": "stdio",
+      "command": "npx",
+      "args": [
+        "-y",
+        "@wunderio/wdrmcp@{{wdrmcpVersion}}",
+        "--tools-config",
+        "{{toolsConfigPath}}"
+      ],
+      "gallery": "https://mcp.wdr.io",
+      "version": "{{wdrmcpVersion}}"
+    },
+    "wunder-quality-system": {
+      "type": "stdio",
+      "command": "npx",
+      "args": [
+        "-y",
+        "supergateway@{{supergatewayVersion}}",
+        "--streamableHttp",
+        "https://quality.wunder.io/mcp",
+        "--oauth2Bearer",
+        "{{wqsApiKey}}"
+      ],
+      "gallery": "https://mcp.wdr.io",
+      "version": "1.0.0"
+    }
+  },
+  "inputs": []
+}

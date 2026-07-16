@@ -1,0 +1,17 @@
+{
+  "name": "@wunderio/agents-core",
+  "version": "1.0.0",
+  "description": "Shared core for Wunder.io agentic AI environments.",
+  "main": "src/index.js",
+  "type": "module",
+  "files": [
+    "src/",
+    "templates/"
+  ],
+  "scripts": {
+    "test": "node --test src/**/*.test.js"
+  },
+  "engines": {
+    "node": ">=20"
+  }
+}
