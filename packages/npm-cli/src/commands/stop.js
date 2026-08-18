@@ -1,7 +1,6 @@
-import { execDevcontainer } from '../lib/container.js';
-import { getProjectName } from '../lib/config.js';
+import { getProjectName, getContainerName } from '../lib/config.js';
 
-export async function stop({ projectRoot, args = [] }) {
+export async function stop({ projectRoot, args: _args = [] }) {
   const projectName = getProjectName(projectRoot);
   console.log(`🛑 Stopping agents container for ${projectName}...`);
 
@@ -10,8 +9,7 @@ export async function stop({ projectRoot, args = [] }) {
   // label. The container created by `devcontainer up` is labelled with the
   // devcontainer config path, so we stop the container named after the project.
   const { spawn } = await import('node:child_process');
-  const containerName = `${projectName}-agents`;
-
+  const containerName = getContainerName(projectName);
   return new Promise((resolve, reject) => {
     const child = spawn('docker', ['stop', containerName], { stdio: 'inherit' });
     child.on('close', (code) => {
