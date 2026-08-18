@@ -1,4 +1,4 @@
-import { writeDevcontainerConfig, execDevcontainer, resolveNodeVersion } from '../lib/container.js';
+import { writeDevcontainerConfig, devcontainerUp, resolveNodeVersion } from '../lib/container.js';
 import { getProjectName, getToolsConfigPath } from '../lib/config.js';
 import { getPackageVersions, generateCliMcpConfig, generateVscodeMcpConfig } from '../lib/mcp.js';
 import { resolve } from 'node:path';
@@ -52,17 +52,19 @@ export async function setUp({ projectRoot, args = [] }) {
 
   // Bring up the devcontainer
   console.log('🚀 Starting agents devcontainer...');
-  const upCode = await execDevcontainer([
-    'up',
-    '--workspace-folder', projectRoot
-  ]);
+  const { code: upCode, remoteWorkspaceFolder } = await devcontainerUp(projectRoot);
   if (upCode !== 0) {
     throw new Error(`devcontainer up failed with exit code ${upCode}`);
   }
+  // The devcontainer CLI chooses the container-side workspace folder (typically
+  // /workspaces/<project>, NOT /workspace). Everything we write inside the
+  // container must be anchored to this path, not a hardcoded one.
+  const workspaceFolder = remoteWorkspaceFolder || '/workspace';
+  const copilotDataDir = `${workspaceFolder}/.copilot`;
 
   // Generate MCP configs
   const { wdrmcpVersion, supergatewayVersion } = await getPackageVersions();
-  const toolsConfigPath = '/workspace/.agents/tools-config';
+  const toolsConfigPath = `${workspaceFolder}/.agents/tools-config`;
 
   const cliMcpConfig = generateCliMcpConfig({
     projectName,
@@ -78,27 +80,37 @@ export async function setUp({ projectRoot, args = [] }) {
     supergatewayVersion
   });
 
-  // Write CLI MCP config inside container
+  // Persist Copilot session data by symlinking ~/.copilot to the
+  // ${copilotDataDir} bind-mount (survives restarts). Do this BEFORE writing
+  // any config so the MCP config lands in the persisted location. Any
+  // pre-existing real ~/.copilot is migrated best-effort — a migration problem
+  // must never abort setup, otherwise the symlink and configs below never get
+  // written and Copilot ends up without working MCP settings.
+  await execInContainer(projectRoot, [
+    'bash', '-c',
+    `
+      mkdir -p ${copilotDataDir}
+      if [ -e ~/.copilot ] && [ ! -L ~/.copilot ]; then
+        if cp -rn ~/.copilot/. ${copilotDataDir}/ 2>/tmp/copilot-migrate.err; then
+          rm -rf ~/.copilot
+        else
+          echo "⚠️ Could not fully migrate existing ~/.copilot to ${copilotDataDir}:" >&2
+          sed 's/^/   /' /tmp/copilot-migrate.err >&2
+          echo "   Continuing anyway; new session data will be stored in ${copilotDataDir}." >&2
+          rm -rf ~/.copilot
+        fi
+      fi
+      ln -sfn ${copilotDataDir} ~/.copilot
+    `
+  ]);
+  console.log(`✅ Symlinked ~/.copilot to ${copilotDataDir}`);
+
+  // Write CLI MCP config (through the symlink, into ${copilotDataDir})
   await execInContainer(projectRoot, [
     'bash', '-c',
     `mkdir -p ~/.copilot && cat > ~/.copilot/mcp-config.json`,
   ], { input: cliMcpConfig });
   console.log('✅ Wrote Copilot CLI MCP config');
-
-  // Symlink ~/.copilot to /workspace/.copilot
-  await execInContainer(projectRoot, [
-    'bash', '-c',
-    `
-      if [ -e ~/.copilot ] && [ ! -L ~/.copilot ]; then
-        cp -rT ~/.copilot /workspace/.copilot 2>/dev/null && rm -rf ~/.copilot || {
-          echo "⚠️ Could not migrate ~/.copilot" >&2;
-          exit 1;
-        }
-      fi
-      ln -sfn /workspace/.copilot ~/.copilot
-    `
-  ]);
-  console.log('✅ Symlinked ~/.copilot to /workspace/.copilot');
 
   // Write VS Code User mcp.json inside container
   await execInContainer(projectRoot, [

@@ -43,7 +43,7 @@ export function generateCliMcpConfig({ projectName, toolsConfigPath, wdrmcpVersi
     toolsConfigPath,
     wdrmcpVersion,
     supergatewayVersion,
-    wqsApiKey: '\\${WQS_MCP_API_KEY}'
+    wqsApiKey: '${WQS_MCP_API_KEY}'
   });
 }
 

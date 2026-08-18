@@ -68,6 +68,49 @@ export async function execDevcontainer(args, options = {}) {
   });
 }
 
+/**
+ * Runs `devcontainer up` and returns the parsed result, including the
+ * container-side workspace folder (e.g. /workspaces/<project>). The devcontainer
+ * CLI decides this path (it is NOT necessarily /workspace), so callers must use
+ * the reported value instead of hardcoding a mount path.
+ */
+export async function devcontainerUp(projectRoot) {
+  await ensureDevcontainerCli();
+  const { spawn } = await import('node:child_process');
+
+  return new Promise((resolvePromise, reject) => {
+    const child = spawn(
+      'devcontainer',
+      ['up', '--workspace-folder', projectRoot],
+      { stdio: ['inherit', 'pipe', 'inherit'], env: { ...process.env } }
+    );
+
+    let stdout = '';
+    child.stdout.on('data', (chunk) => {
+      stdout += chunk.toString();
+      process.stdout.write(chunk);
+    });
+
+    child.on('close', (code) => {
+      let remoteWorkspaceFolder;
+      const line = stdout
+        .split('\n')
+        .reverse()
+        .find((l) => l.includes('"remoteWorkspaceFolder"'));
+      if (line) {
+        try {
+          remoteWorkspaceFolder = JSON.parse(line).remoteWorkspaceFolder;
+        } catch {
+          // ignore parse errors; caller falls back to a default
+        }
+      }
+      resolvePromise({ code: code ?? 0, remoteWorkspaceFolder });
+    });
+
+    child.on('error', reject);
+  });
+}
+
 function readTemplate(name) {
   const templateUrl = import.meta.resolve(`@wunderio/agents-core/templates/${name}`);
   return readFileSync(fileURLToPath(templateUrl), 'utf8');
