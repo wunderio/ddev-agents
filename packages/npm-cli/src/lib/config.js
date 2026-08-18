@@ -1,6 +1,7 @@
 import { cwd } from 'node:process';
 import { resolve, dirname } from 'node:path';
 import { statSync, existsSync, readFileSync } from 'node:fs';
+import { createHash } from 'node:crypto';
 
 const PACKAGE_NAME = '@wunderio/node-agents';
 const DEFAULT_CONTAINER_NAME_PREFIX = 'agents';
@@ -8,8 +9,6 @@ const DEFAULT_CONTAINER_NAME_PREFIX = 'agents';
 export function resolveProjectRoot() {
   return cwd();
 }
-
-import { createHash } from 'node:crypto';
 
 export function getProjectName(projectRoot) {
   const packageJsonPath = resolve(projectRoot, 'package.json');
