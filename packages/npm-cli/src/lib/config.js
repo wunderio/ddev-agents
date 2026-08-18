@@ -32,7 +32,6 @@ export function getProjectName(projectRoot) {
   }
   return 'node-agents';
 }
-}
 
 export function getDevcontainerConfigPath(projectRoot) {
   return resolve(projectRoot, '.devcontainer', 'devcontainer.json');
