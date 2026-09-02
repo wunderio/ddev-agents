@@ -1,0 +1,25 @@
+{
+  "name": "@wunderio/node-agents",
+  "version": "1.0.0",
+  "description": "Isolated AI agent environment for node/npm projects (no DDEV required).",
+  "bin": {
+    "agents": "./bin/agents"
+  },
+  "type": "module",
+  "files": [
+    "bin/",
+    "src/",
+    ".devcontainer/"
+  ],
+  "scripts": {
+    "build": "echo 'No build step required'",
+    "test": "node --test src/**/*.test.js",
+    "lint": "echo 'No linter configured'"
+  },
+  "dependencies": {
+    "@wunderio/agents-core": "^1.0.0"
+  },
+  "engines": {
+    "node": ">=20"
+  }
+}

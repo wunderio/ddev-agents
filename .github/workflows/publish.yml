@@ -1,0 +1,61 @@
+name: Publish npm packages
+
+# Package releases are tagged separately from the DDEV add-on. Add-on releases
+# use plain version tags, so publishing on every GitHub release would collide
+# with them and try to republish unchanged package versions.
+on:
+  push:
+    tags:
+      - 'npm-v*'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  publish:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          registry-url: https://registry.npmjs.org
+          cache: npm
+
+      - name: Fail early if the npm token is missing
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
+        run: |
+          if [ -z "$NODE_AUTH_TOKEN" ]; then
+            echo "::error::NPM_TOKEN is not configured for this repository."
+            echo "Add it under Settings → Secrets and variables → Actions before tagging a package release."
+            exit 1
+          fi
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Run tests
+        run: npm test
+
+      # Published in dependency order: @wunderio/node-agents depends on
+      # @wunderio/agents-core, and `npm publish --workspaces` does not guarantee
+      # ordering. Already-published versions are skipped so a re-run is safe.
+      - name: Publish packages
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
+        run: |
+          set -euo pipefail
+          for pkg in packages/core packages/npm-cli; do
+            name=$(node -p "require('./$pkg/package.json').name")
+            version=$(node -p "require('./$pkg/package.json').version")
+            if npm view "$name@$version" version >/dev/null 2>&1; then
+              echo "⏭️  $name@$version already published, skipping."
+            else
+              echo "📦 Publishing $name@$version"
+              npm publish --workspace "$pkg" --access public
+            fi
+          done

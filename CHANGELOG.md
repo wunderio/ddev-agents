@@ -7,6 +7,68 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+
+- New `@wunderio/node-agents` npm package for node/npm projects without DDEV.
+- Shared `@wunderio/agents-core` package containing devcontainer templates,
+  managed security config, MCP config templates, version resolution, and
+  Copilot invocation helpers.
+- `node-project` Copilot skill and generated `copilot-instructions.md`, written
+  into `~/.copilot` inside the agents container by `agents set-up`. The skill
+  documents lockfile-based package-manager detection (npm/yarn/pnpm), the
+  canonical install/ci/run/build/test/lint commands, how to treat a failing
+  suite or linter, long-running commands, and guardrails. The instructions carry
+  the facts detected for the project: name, Node.js version, package manager and
+  the lockfile it came from, and the scripts declared in `package.json`.
+  Node projects deliberately ship **no** local MCP tool server: the Copilot agent
+  runs in the same container as the source, so it executes build/test/lint
+  commands with its own shell. MCP is only architecturally necessary for the
+  DDEV flavour, where wdrmcp must reach the separate `web` container over SSH.
+  `wunder-quality-system` remains the only MCP server configured for node
+  projects.
+- CLI commands: `agents build`, `agents set-up`, `agents copilot`, `agents start`,
+  `agents stop`, `agents npm`, `agents npx`, `agents exec`.
+- Monorepo workspaces (`packages/core`, `packages/npm-cli`) alongside the
+  existing DDEV add-on files at the repository root.
+- Build-time sync script (`npm run sync-core-to-ddev`) to regenerate DDEV
+  add-on devcontainer configs and managed config from shared core templates,
+  with a `--check` mode that fails CI on drift instead of rewriting files.
+- `agents set-up --force` / `agents build --force` to deliberately replace a
+  pre-existing `.devcontainer/devcontainer.json`.
+
+### Changed
+
+- Converted repository to npm workspaces with a root `package.json`.
+- Updated README with node/npm flavour documentation.
+- The node flavour no longer configures wdrmcp. Its `command` and `check`
+  executors require an `ssh_target` and always execute over SSH into a second
+  container, so none of their tools could load in this single-container
+  flavour. The bundled MCP server replaces them.
+- npm packages are now published from `npm-v*` tags rather than every GitHub
+  release, so package versions no longer collide with DDEV add-on release tags.
+  Publishing runs in dependency order and skips already-published versions.
+
+### Fixed
+
+- The node agents container is now hardened to match the documented guarantees:
+  `--cap-drop=ALL` and `--security-opt no-new-privileges:true` (which disables
+  `sudo`), with `updateRemoteUserUID` disabled because the CLI's root-side UID
+  remap needs `CAP_CHOWN`. Previously the container ran unhardened while the
+  README promised otherwise.
+- `agents stop` now finds the container via the devcontainer CLI's
+  `devcontainer.local_folder` label instead of a container name the CLI never
+  assigns, and reports Docker failures instead of masking them as
+  "already stopped or not found".
+- The node devcontainer pins a deterministic container-side workspace folder
+  (`/workspace`) so tool and MCP paths resolve correctly.
+- Secrets are no longer duplicated into `containerEnv` for the node flavour,
+  where they would persist in the container's stored configuration.
+- The managed config copied into node projects no longer carries the
+  `#ddev-generated` marker, and generated MCP configs no longer set
+  `DDEV_PROJECT`.
+- Removed a stray `mcp/.vscode/` directory that pinned an outdated wdrmcp
+  version against a hardcoded `/workspace` path.
+
 ## [1.1.2] - 2026-03-16
 
 ### Changed

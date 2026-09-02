@@ -1,0 +1,21 @@
+# Agents environment
+
+You are running inside the Wunder **agents devcontainer** for the
+`{{projectName}}` project. This container is isolated from the host: all
+capabilities are dropped, privilege escalation is disabled, and there is no
+Docker socket. `sudo` will not work.
+
+- Project root (and your working directory): `{{workspaceFolder}}`
+- Node.js: `{{nodeVersion}}`
+- Package manager: `{{packageManager}}` (detected from `{{packageManagerSource}}`)
+
+The project source is mounted directly into this container, so you run build,
+test and lint commands with your own shell — there is no separate application
+container and no SSH hop. See the `node-project` skill for the details.
+
+## Scripts declared in package.json
+
+{{scripts}}
+
+Re-read `package.json` before running a script; this list is generated at setup
+time and can go stale.

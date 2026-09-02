@@ -1,0 +1,57 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+permissions:
+  contents: read
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Verify DDEV add-on sync
+        run: npm run sync-core-to-ddev -- --check
+
+      - name: Run tests
+        run: npm test
+
+      - name: Verify agents CLI help
+        run: node packages/npm-cli/bin/agents --help
+
+      - name: Verify the Copilot skill and instructions are generated
+        run: |
+          node -e '
+            import("./packages/npm-cli/src/lib/skills.js").then((skills) => {
+              const skill = skills.getSkillContent();
+              if (!/^---\nname: node-project$/m.test(skill)) {
+                console.error("SKILL.md is missing front matter with name: node-project");
+                process.exit(1);
+              }
+              const instructions = skills.generateInstructions({
+                projectRoot: process.cwd(),
+                projectName: "ci",
+                nodeVersion: "22"
+              });
+              if (/\{\{\w+\}\}/.test(instructions)) {
+                console.error("Instructions contain unrendered placeholders");
+                process.exit(1);
+              }
+              console.log("Skill path:", skills.getSkillRelativePath());
+              console.log(instructions);
+            });
+          '

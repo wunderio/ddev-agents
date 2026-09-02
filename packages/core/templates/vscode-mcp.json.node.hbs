@@ -1,0 +1,19 @@
+{
+  "servers": {
+    "wunder-quality-system": {
+      "type": "stdio",
+      "command": "npx",
+      "args": [
+        "-y",
+        "supergateway",
+        "--streamableHttp",
+        "https://quality.wunder.io/mcp",
+        "--oauth2Bearer",
+        "{{wqsApiKey}}"
+      ],
+      "gallery": "https://mcp.wdr.io",
+      "version": "1.0.0"
+    }
+  },
+  "inputs": []
+}

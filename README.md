@@ -2,6 +2,19 @@
 
 Standardized environment for creating an isolated workspace where agentic AI tools can be run safely and consistently across Wunder.io projects.
 
+## Flavours
+
+This repository provides the agents environment in two flavours:
+
+1.  **DDEV add-on** (`ddev-agents`) — for PHP/Drupal projects that already use
+    DDEV. Installed with `ddev addon get wunderio/ddev-agents`.
+2.  **npm package** (`@wunderio/node-agents`) — for node/npm projects that do
+    not use DDEV. Installed with `npm i -D @wunderio/node-agents`.
+
+Both share the same security model, Copilot CLI support, WQS MCP integration,
+and tool configuration patterns. The npm flavour runs its own isolated
+container via the devcontainer CLI instead of DDEV.
+
 ## Overview
 
 The `ddev-agents` add-on provides a pre-configured `agents` service and VS Code Dev Container settings. Key benefits include:
@@ -135,6 +148,65 @@ The `.agents/tools-config/` directory contains YAML definitions for tools expose
 -   **Drupal MCP**: Proxy to Drupal's built-in MCP server endpoint
 
 See `.agents/README.md` for details on adding custom tools and configuring credentials.
+
+## Node/npm Projects
+
+For projects that are not PHP/Drupal and do not use DDEV, install the standalone
+npm package:
+
+```bash
+npm install --save-dev @wunderio/node-agents
+```
+
+Add convenience scripts to `package.json`:
+
+```json
+{
+  "scripts": {
+    "agents:build": "agents build",
+    "agents:setup": "agents set-up",
+    "copilot": "agents copilot"
+  }
+}
+```
+
+Run setup once:
+
+```bash
+npx agents set-up
+```
+
+Then run Copilot:
+
+```bash
+npx agents copilot
+npx agents copilot -p "explain this function"
+```
+
+Other useful passthrough commands:
+
+```bash
+npx agents npm install
+npx agents npm run build
+npx agents npm run test
+npx agents npx eslint .
+npx agents exec -- node -v
+```
+
+The npm flavour uses the same devcontainer isolation, managed security config,
+WQS MCP, and Copilot CLI authentication as the DDEV add-on, including the same
+`--cap-drop=ALL` and `no-new-privileges:true` hardening.
+
+Because there is no separate DDEV `web` container, the npm flavour does not use
+wdrmcp (whose command tools require an SSH target) — and it needs no local MCP
+tool server either. The Copilot agent runs in the *same* container as your code,
+so it builds, tests and lints with its own shell. Instead, `agents set-up`
+installs a `node-project` Copilot **skill** plus generated instructions into
+`~/.copilot` inside the container, describing the detected package manager
+(npm/yarn/pnpm, from the lockfile) and the scripts declared in `package.json`.
+The Wunder Quality System MCP server remains configured.
+
+See `packages/npm-cli/README.md` for full documentation.
 
 ## GitHub Copilot CLI
 
