@@ -25,7 +25,7 @@ function printUsage() {
 
 Commands:
   build              Build the agents devcontainer image
-  set-up             Start the container and apply devcontainer metadata
+  set-up             Start the container, write agent config (MCP, skill, instructions)
   copilot [args]     Run GitHub Copilot CLI inside the container
   start              Start the agents container
   stop               Stop the agents container
@@ -33,9 +33,18 @@ Commands:
   npx [args]         Run npx inside the container
   exec [args]        Run an arbitrary command inside the container
 
+Options:
+  --node-version <v>     Override the detected Node.js version (build, set-up)
+  --force                Replace an existing .devcontainer/devcontainer.json
+
 Environment variables:
   DDEV_AGENTS_GH_TOKEN   GitHub token for Copilot CLI auth
   WQS_MCP_API_KEY        Wunder Quality System MCP API key (optional)
+
+The npm/yarn/pnpm workflow is delivered to the agent as the "node-project"
+Copilot skill plus generated instructions, both written into ~/.copilot inside
+the container. No local MCP server is needed: the agent runs in the same
+container as your code.
 `);
 }
 

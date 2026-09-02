@@ -13,14 +13,40 @@ import { dirname, join } from 'node:path';
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const rootDir = join(__dirname, '..');
 
-function loadTemplate(name) {
+// Loaded on demand: eagerly reading every template at import time makes any
+// template rename break consumers that never touch that template.
+export function loadTemplate(name) {
   return readFileSync(join(rootDir, 'templates', name), 'utf8');
 }
 
-export const managedConfig = JSON.parse(loadTemplate('copilot-managed-config.json'));
-export const devcontainerFeatures = JSON.parse(loadTemplate('devcontainer-features.json'));
-export const mcpConfigTemplate = loadTemplate('mcp-config.json.hbs');
-export const vscodeMcpTemplate = loadTemplate('vscode-mcp.json.hbs');
+export function getManagedConfig() {
+  return JSON.parse(loadTemplate('copilot-managed-config.json'));
+}
+
+export function getDevcontainerFeatures() {
+  return JSON.parse(loadTemplate('devcontainer-features.json'));
+}
+
+export function getNodeMcpConfigTemplate() {
+  return loadTemplate('mcp-config.json.node.hbs');
+}
+
+export function getNodeVscodeMcpTemplate() {
+  return loadTemplate('vscode-mcp.json.node.hbs');
+}
+
+export function getNodeInstructionsTemplate() {
+  return loadTemplate('copilot-instructions.md.node.hbs');
+}
+
+/**
+ * The node flavour ships its tooling knowledge as a Copilot skill rather than
+ * an MCP server: the agent runs in the same container as the code, so a server
+ * would only wrap commands its own shell can already execute.
+ */
+export function getNodeSkill() {
+  return loadTemplate(join('skills', 'node-project', 'SKILL.md'));
+}
 
 export { resolveNodeVersion } from './lib/version-resolver.js';
 export { invokeCopilot } from './lib/copilot-invoker.js';

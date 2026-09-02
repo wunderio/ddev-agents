@@ -194,9 +194,17 @@ npx agents exec -- node -v
 ```
 
 The npm flavour uses the same devcontainer isolation, managed security config,
-WQS MCP, and Copilot CLI authentication as the DDEV add-on. MCP tools execute
-inside the agents container (there is no separate DDEV web container), and the
-package manager is auto-detected from the project's lockfile.
+WQS MCP, and Copilot CLI authentication as the DDEV add-on, including the same
+`--cap-drop=ALL` and `no-new-privileges:true` hardening.
+
+Because there is no separate DDEV `web` container, the npm flavour does not use
+wdrmcp (whose command tools require an SSH target) — and it needs no local MCP
+tool server either. The Copilot agent runs in the *same* container as your code,
+so it builds, tests and lints with its own shell. Instead, `agents set-up`
+installs a `node-project` Copilot **skill** plus generated instructions into
+`~/.copilot` inside the container, describing the detected package manager
+(npm/yarn/pnpm, from the lockfile) and the scripts declared in `package.json`.
+The Wunder Quality System MCP server remains configured.
 
 See `packages/npm-cli/README.md` for full documentation.
 

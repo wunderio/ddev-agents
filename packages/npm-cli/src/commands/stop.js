@@ -1,27 +1,28 @@
-import { getProjectName, getContainerName } from '../lib/config.js';
+import { spawn } from 'node:child_process';
+import { getProjectName } from '../lib/config.js';
+import { findContainerIds } from '../lib/container.js';
 
 export async function stop({ projectRoot, args: _args = [] }) {
   const projectName = getProjectName(projectRoot);
   console.log(`🛑 Stopping agents container for ${projectName}...`);
 
-  // devcontainer CLI does not have a direct "down" command for an existing
-  // running container in all versions; fall back to docker stop by container
-  // label. The container created by `devcontainer up` is labelled with the
-  // devcontainer config path, so we stop the container named after the project.
-  const { spawn } = await import('node:child_process');
-  const containerName = getContainerName(projectName);
-  return new Promise((resolve, reject) => {
-    const child = spawn('docker', ['stop', containerName], { stdio: 'inherit' });
-    child.on('close', (code) => {
-      if (code === 0 || code === null) {
-        console.log('✅ Agents container stopped.');
-        resolve(0);
-      } else {
-        // If the container does not exist, treat as already stopped.
-        console.log('ℹ️  Container already stopped or not found.');
-        resolve(0);
-      }
-    });
+  const containerIds = await findContainerIds(projectRoot);
+
+  if (containerIds.length === 0) {
+    console.log('ℹ️  No running agents container found for this project.');
+    return 0;
+  }
+
+  const exitCode = await new Promise((resolvePromise, reject) => {
+    const child = spawn('docker', ['stop', ...containerIds], { stdio: 'inherit' });
+    child.on('close', (code) => resolvePromise(code ?? 0));
     child.on('error', reject);
   });
+
+  if (exitCode !== 0) {
+    throw new Error(`docker stop failed with exit code ${exitCode}`);
+  }
+
+  console.log(`✅ Agents container stopped (${containerIds.length} container(s)).`);
+  return 0;
 }

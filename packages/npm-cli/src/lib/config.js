@@ -1,10 +1,8 @@
 import { cwd } from 'node:process';
-import { resolve, dirname } from 'node:path';
-import { statSync, existsSync, readFileSync } from 'node:fs';
+import { resolve } from 'node:path';
+import { existsSync, readFileSync } from 'node:fs';
 import { createHash } from 'node:crypto';
 
-const PACKAGE_NAME = '@wunderio/node-agents';
-const DEFAULT_CONTAINER_NAME_PREFIX = 'agents';
 
 export function resolveProjectRoot() {
   return cwd();
@@ -34,14 +32,6 @@ export function getProjectName(projectRoot) {
 
 export function getDevcontainerConfigPath(projectRoot) {
   return resolve(projectRoot, '.devcontainer', 'devcontainer.json');
-}
-
-export function getToolsConfigPath(projectRoot) {
-  return resolve(projectRoot, '.agents', 'tools-config');
-}
-
-export function getContainerName(projectName) {
-  return `${projectName}-${DEFAULT_CONTAINER_NAME_PREFIX}`;
 }
 
 export function getImageName(projectName) {

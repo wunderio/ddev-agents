@@ -1,23 +1,14 @@
 import { writeDevcontainerConfig, devcontainerUp, resolveNodeVersion } from '../lib/container.js';
-import { getProjectName, getToolsConfigPath } from '../lib/config.js';
-import { getPackageVersions, generateCliMcpConfig, generateVscodeMcpConfig } from '../lib/mcp.js';
+import { getProjectName, getImageName } from '../lib/config.js';
+import { generateCliMcpConfig, generateVscodeMcpConfig } from '../lib/mcp.js';
+import { generateInstructions, getSkillContent, getSkillRelativePath } from '../lib/skills.js';
 import { resolve } from 'node:path';
-import {
-  existsSync,
-  mkdirSync,
-  copyFileSync,
-  cpSync,
-  writeFileSync,
-  readFileSync,
-  appendFileSync
-} from 'node:fs';
+import { existsSync, mkdirSync, writeFileSync, readFileSync, appendFileSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
-
-const __dirname = fileURLToPath(new URL('.', import.meta.url));
-const packageRoot = resolve(__dirname, '../..');
 
 export async function setUp({ projectRoot, args = [] }) {
   const explicitNodeVersion = parseExplicitArg(args, '--node-version');
+  const force = args.includes('--force');
   const projectName = getProjectName(projectRoot);
   const nodeVersion = resolveNodeVersion({ projectRoot, explicitVersion: explicitNodeVersion });
 
@@ -25,60 +16,49 @@ export async function setUp({ projectRoot, args = [] }) {
   console.log(`📍 Node.js version: ${nodeVersion}`);
 
   // Write devcontainer.json
-  const configPath = writeDevcontainerConfig({ projectRoot, projectName, nodeVersion });
+  const configPath = writeDevcontainerConfig({ projectRoot, projectName, nodeVersion, force });
   console.log(`📝 Wrote ${configPath}`);
 
-  // Copy managed config into project so devcontainer can bind-mount it
-  const managedConfigSource = resolveCoreTemplatePath('copilot-managed-config.json');
+  // Copy managed config into project so devcontainer can bind-mount it. The
+  // "#ddev-generated" marker is deliberately stripped: it is meaningful only to
+  // DDEV's add-on overwrite/removal logic and would be misleading here.
+  const managedConfig = JSON.parse(
+    readFileSync(resolveCoreTemplatePath('copilot-managed-config.json'), 'utf8')
+  );
+  delete managedConfig._comment;
   const managedConfigDest = resolve(projectRoot, '.devcontainer', 'copilot-managed-config.json');
-  copyFileSync(managedConfigSource, managedConfigDest);
-  console.log(`📝 Copied managed config to ${managedConfigDest}`);
-
-  // Copy node tool configs into project
-  const toolsConfigDest = getToolsConfigPath(projectRoot);
-  if (!existsSync(toolsConfigDest)) {
-    const toolsConfigSource = resolve(packageRoot, '.agents', 'tools-config');
-    mkdirSync(toolsConfigDest, { recursive: true });
-    cpSync(toolsConfigSource, toolsConfigDest, { recursive: true });
-    console.log(`📝 Copied default tool configs to ${toolsConfigDest}`);
-  } else {
-    console.log(`ℹ️  Tool configs already exist at ${toolsConfigDest}`);
-  }
+  writeFileSync(managedConfigDest, `${JSON.stringify(managedConfig, null, 2)}\n`, 'utf8');
+  console.log(`📝 Wrote managed config to ${managedConfigDest}`);
 
   // Ensure .copilot persistence directory exists on host
   const copilotDir = resolve(projectRoot, '.copilot');
   mkdirSync(copilotDir, { recursive: true });
   ensureGitignored(projectRoot, '.copilot');
 
-  // Bring up the devcontainer
+  // Bring up the devcontainer, reusing any image produced by `agents build`.
   console.log('🚀 Starting agents devcontainer...');
-  const { code: upCode, remoteWorkspaceFolder } = await devcontainerUp(projectRoot);
+  const { code: upCode, remoteWorkspaceFolder } = await devcontainerUp(projectRoot, {
+    cacheFrom: getImageName(projectName)
+  });
   if (upCode !== 0) {
     throw new Error(`devcontainer up failed with exit code ${upCode}`);
   }
-  // The devcontainer CLI chooses the container-side workspace folder (typically
-  // /workspaces/<project>, NOT /workspace). Everything we write inside the
-  // container must be anchored to this path, not a hardcoded one.
+
+  // The generated config pins the container-side workspace to /workspace, but
+  // the CLI's reported value stays authoritative.
   const workspaceFolder = remoteWorkspaceFolder || '/workspace';
   const copilotDataDir = `${workspaceFolder}/.copilot`;
 
-  // Generate MCP configs
-  const { wdrmcpVersion, supergatewayVersion } = await getPackageVersions();
-  const toolsConfigPath = `${workspaceFolder}/.agents/tools-config`;
-
-  const cliMcpConfig = generateCliMcpConfig({
+  const cliMcpConfig = generateCliMcpConfig({ workspaceFolder });
+  const vscodeMcpConfig = generateVscodeMcpConfig({ workspaceFolder });
+  const instructions = generateInstructions({
+    projectRoot,
     projectName,
-    toolsConfigPath,
-    wdrmcpVersion,
-    supergatewayVersion
+    nodeVersion,
+    workspaceFolder
   });
-
-  const vscodeMcpConfig = generateVscodeMcpConfig({
-    projectName,
-    toolsConfigPath,
-    wdrmcpVersion,
-    supergatewayVersion
-  });
+  const skill = getSkillContent();
+  const skillPath = getSkillRelativePath();
 
   // Persist Copilot session data by symlinking ~/.copilot to the
   // ${copilotDataDir} bind-mount (survives restarts). Do this BEFORE writing
@@ -119,6 +99,21 @@ export async function setUp({ projectRoot, args = [] }) {
   ], { input: vscodeMcpConfig });
   console.log('✅ Wrote VS Code MCP config');
 
+  // Node build/test/lint tooling is delivered as a skill rather than an MCP
+  // server: the agent shares this container with the source, so it can run the
+  // commands itself and only needs to know the project's conventions.
+  await execInContainer(projectRoot, [
+    'bash', '-c',
+    `mkdir -p ~/.copilot/$(dirname ${skillPath}) && cat > ~/.copilot/${skillPath}`
+  ], { input: skill });
+  console.log(`✅ Installed Copilot skill (~/.copilot/${skillPath})`);
+
+  await execInContainer(projectRoot, [
+    'bash', '-c',
+    `mkdir -p ~/.copilot && cat > ~/.copilot/copilot-instructions.md`
+  ], { input: instructions });
+  console.log('✅ Wrote Copilot instructions');
+
   console.log('');
   console.log('✅ Setup complete. Run `agents copilot` or attach VS Code to the devcontainer.');
   return 0;
@@ -155,7 +150,7 @@ async function execInContainer(projectRoot, command, { input } = {}) {
   const { spawn } = await import('node:child_process');
   const args = ['exec', '--workspace-folder', projectRoot, ...command];
 
-  return new Promise((resolve, reject) => {
+  return new Promise((resolvePromise, reject) => {
     const child = spawn('devcontainer', args, {
       stdio: ['pipe', 'inherit', 'inherit']
     });
@@ -167,7 +162,7 @@ async function execInContainer(projectRoot, command, { input } = {}) {
 
     child.on('close', (code) => {
       if (code === 0 || code === null) {
-        resolve(code ?? 0);
+        resolvePromise(code ?? 0);
       } else {
         reject(new Error(`Container command failed with exit code ${code}`));
       }

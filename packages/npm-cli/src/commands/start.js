@@ -1,14 +1,13 @@
-import { execDevcontainer } from '../lib/container.js';
-import { getProjectName } from '../lib/config.js';
+import { devcontainerUp } from '../lib/container.js';
+import { getProjectName, getImageName } from '../lib/config.js';
 
 export async function start({ projectRoot, args = [] }) {
   const projectName = getProjectName(projectRoot);
   console.log(`🚀 Starting agents container for ${projectName}...`);
 
-  const exitCode = await execDevcontainer([
-    'up',
-    '--workspace-folder', projectRoot
-  ]);
+  const { code: exitCode } = await devcontainerUp(projectRoot, {
+    cacheFrom: getImageName(projectName)
+  });
 
   if (exitCode !== 0) {
     throw new Error(`Failed to start container (exit ${exitCode})`);
