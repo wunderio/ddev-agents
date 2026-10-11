@@ -22,6 +22,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   `web/{modules,themes,profiles}/contrib`, `web/libraries`. Documented in the same
   README entry and the volumes file's header.
 
+### Fixed
+
+- Reinstalling the addon no longer resets `docker-compose.agents-volumes.yaml` to
+  `volumes: []`. DDEV treats a project file as addon-managed when the signature
+  string appears anywhere in it, and the file's own comments spelled it out. The
+  comments now describe the signature without writing it literally.
+
 ## [1.1.2] - 2026-03-16
 
 ### Changed
