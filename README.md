@@ -19,7 +19,7 @@ This section walks through the complete setup from scratch. Follow each step in 
 Before you begin, ensure you have:
 
 -   [DDEV](https://ddev.readthedocs.io/en/stable/) installed on your host machine
--   An active **GitHub Copilot subscription** (Individual, Business, or Enterprise)
+-   An active **GitHub Copilot subscription** (Individual, Business, or Enterprise) and/or a **Claude for Teams** account
 -   **VS Code** or a **JetBrains IDE** (PhpStorm, WebStorm etc.)
 
 ### Step 1: Install the Add-on
@@ -113,6 +113,7 @@ If you run agents while still on your host machine, you lose the safety of the i
 -   **SSH-Based Tool Execution**: MCP tools execute commands in the DDEV web container via SSH (no Docker socket access).
 -   **MCP Tool Configs**: Pre-configured tools for Drush, Composer, Drupal MCP proxy, and log access (`.agents/tools-config/`).
 -   **GitHub Copilot (Agent Mode)**: Includes the `copilot` CLI extension.
+-   **Claude Code (Teams)**: Includes the `claude` CLI, authenticated against a Claude for Teams subscription (no personal API keys required).
 -   **Secure Authentication**: Uses your host's `DDEV_AGENTS_GH_TOKEN` automatically, so you never have to type credentials inside the container.
 -   **Wunder Quality System MCP**: Pre-configured access to Wunder's quality standards and guidelines.
 
@@ -211,6 +212,75 @@ rm -rf .copilot/
 
 The directory will be recreated automatically on the next `ddev set-up` run (which also re-creates the `~/.copilot` → `/workspace/.copilot` symlink inside the container). Copilot will re-initialize on the next run.
 
+## Claude Code (Teams) — CLI
+
+Run Claude Code directly from your host terminal via `ddev claude`, with all execution happening inside the isolated agents container.
+
+### Prerequisites
+
+-   A **Claude for Teams** account (centrally billed seats — no personal API keys needed)
+-   DDEV project with the `ddev-agents` add-on installed
+
+### First-Time Setup
+
+1.  Start the DDEV project:
+    ```bash
+    ddev start
+    ```
+2.  Install and authenticate (first run auto-installs Claude Code):
+    ```bash
+    ddev claude login
+    ```
+    Sign in with your company Claude for Teams account when prompted.
+3.  Verify authentication:
+    ```bash
+    ddev claude
+    ```
+    Inside the Claude REPL, run `/status` to confirm the auth method shows **Teams** (not API key).
+
+### Usage
+
+**Interactive mode** (REPL):
+```bash
+ddev claude
+```
+
+**Headless mode** (single prompt):
+```bash
+ddev claude -p "explain what this module does"
+```
+
+**Pass any Claude Code flags**:
+```bash
+ddev claude --version
+ddev claude --help
+```
+
+### How Auth Persistence Works
+
+-   Claude Code auth state is stored on your host machine under `~/.ddev-agents/projects/<ddev-project>/claude/`, bind-mounted into the container at `/home/vscode/.claude-state`. Inside the container, `~/.claude` and `~/.claude.json` are symlinks into that directory, set up by `ddev set-up` (which runs automatically as a `post-start` hook on every `ddev start` / `ddev restart`).
+-   The host directory is created by a `pre-start` hook so it exists before Docker bind-mounts it (avoids root-owned directories on Linux).
+-   State is **per-project**: each DDEV project has its own directory under `~/.ddev-agents/projects/`, so chat history, TODOs, and per-project settings stay isolated. Log in once per project; auth then persists across container rebuilds.
+-   Auth survives container rebuilds (`ddev restart`) because it lives on the host, not inside the container.
+-   PHP, Composer, and Claude Code are installed via devcontainer features during `ddev build-devcontainer`. The Claude Code binary is baked into the image — run `ddev build-devcontainer` to update it.
+
+### Security
+
+-   **No API keys**: `ANTHROPIC_API_KEY` is explicitly blanked in the container to ensure Teams OAuth is used
+-   **Bypass-permissions disabled**: Managed settings (`claude-managed-settings.json`) are mounted read-only into the container
+-   **Container isolation**: Claude runs inside the agents container with all security hardening (no capabilities, no privilege escalation)
+
+### Resetting Claude State
+
+Claude Code auth state is persisted under `~/.ddev-agents/projects/<ddev-project>/claude/` on your host machine. To clear all auth and configuration data for a project, delete that directory and restart:
+
+```bash
+rm -rf ~/.ddev-agents/projects/<ddev-project>/claude
+ddev restart
+```
+
+`ddev restart` triggers the `pre-start` hook (which recreates the empty host directory) and the `post-start` hook (which re-initialises the in-container symlinks and an empty `claude.json`). Then run `ddev claude login` to re-authenticate.
+
 ## Wunder Quality System MCP
 
 The [Wunder Quality System](https://quality.wunder.io) (WQS) is Wunder's internal knowledge base of quality standards, best practices, and project guidelines. The WQS MCP server exposes this knowledge directly to AI agents, allowing them to reference Wunder's standards when generating code, writing documentation, or making architectural decisions.
@@ -230,6 +300,16 @@ The purpose of this repository is to serve as the single source of truth for our
 
 **Authentication fails (Copilot CLI):**
 > Ensure `DDEV_AGENTS_GH_TOKEN` is set on your host and includes "Copilot Requests: Read-only" permission. Restart your terminal and run `ddev restart` after setting the token.
+
+**`ddev claude login` fails or hangs:**
+> The OAuth login flow may require a browser-accessible redirect. If the default flow doesn't work inside the container, try:
+> ```bash
+> ddev claude login --method email-code
+> ```
+> This uses an email verification code instead of a browser redirect.
+
+**`ANTHROPIC_API_KEY` warning on host:**
+> If you have `ANTHROPIC_API_KEY` set in your host environment, it will **not** leak into the container (it's explicitly blanked). However, running `claude` directly on your host (outside DDEV) would use that key and incur API billing instead of Teams subscription.
 
 **WQS MCP server not connecting:**
 > Ensure `WQS_MCP_API_KEY` is set on your host machine (see [Step 3](#step-3-set-up-the-wqs-api-key-recommended)). Restart your terminal and run `ddev restart`.
@@ -264,5 +344,39 @@ ERROR: Feature "Common Utilities" (ghcr.io/devcontainers/features/common-utils) 
 >   "dns": ["8.8.8.8", "8.8.4.4", "1.1.1.1"]
 > }
 > ```
+
+**macOS: the whole host freezes / stutters while agents run commands:**
+> On macOS, Docker serves the `../:/workspace` bind mount through a host-side file
+> server (virtiofsd), so every file the container opens under `/workspace` becomes a
+> real macOS file event. Endpoint-security software (e.g. Bitdefender with the EDR
+> add-on) adjudicates those events synchronously — when an agent walks a large tree
+> (`composer`/`phpcs`/`phpstan`/`phpunit`/`grumphp` over `vendor/`, build tooling over
+> `node_modules/`) it can saturate a core in the security extension and stall the
+> machine. There are **two** independent triggers — the **runtime** agent walk above,
+> and DDEV's **startup** Mutagen scan — and each needs its own, complementary fix.
+>
+> **1. Runtime (agent walks).** Move the heavy dependency directories off the bind
+> mount and onto Docker named volumes (VM-local, never touched by the host
+> filesystem). This is opt-in and per-project because dependency layouts vary — see
+> `.ddev/docker-compose.agents-volumes.yaml` for the rationale and step-by-step
+> enablement (including the one-time `composer install` / `npm install` bootstrap the
+> volumes need).
+>
+> **2. Startup (DDEV's Mutagen scan).** On macOS DDEV syncs the project into the web
+> container with Mutagen, which re-scans the entire host tree on every `ddev start`
+> (the "Starting Mutagen sync process" phase) — a second burst the overlay above does
+> **not** cover. Add your heavy trees to `.ddev/mutagen/mutagen.yml` under
+> `sync.defaults.ignore.paths`, **removing that file's first `#ddev-generated` line**
+> so DDEV doesn't regenerate over it, then `ddev mutagen reset`. For a Composer-managed
+> Drupal site the heavy trees are not just `vendor`/`node_modules` but also the
+> git-ignored, Composer-installed code — `web/core`, `web/modules/contrib`,
+> `web/themes/contrib`, `web/profiles/contrib` and `web/libraries` (excluding core +
+> contrib removes the bulk of the scan). Full steps and the ready-to-paste list are in
+> the "COMPANION MITIGATION" section of `.ddev/docker-compose.agents-volumes.yaml`.
+> (Skip this if a host-side IDE/toolchain needs those trees on disk.)
+>
+> Applied together, the two levers cover both event sources from the project side. As
+> optional belt-and-suspenders, the Docker file-server processes can also be excluded
+> in the endpoint-security policy by whoever owns that console.
 
 

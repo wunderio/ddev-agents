@@ -32,15 +32,8 @@ tools:
     enabled: true
     type: mcp_server
     description: |
-      Drupal MCP server proxy for accessing tools provided by the Drupal site.
-
-      This proxies requests to the Drupal site's /mcp/post endpoint to discover
-      and call available tools. Discovered tools are prefixed with "drupal_"
-      (e.g., drupal_general_info).
-
-      Usage:
-      - Use discovered tools directly (e.g., drupal_general_info, drupal_entity_info)
-      - Each discovered tool is automatically prefixed
+      Proxy to Drupal's built-in MCP server. Dynamically exposes all Drupal MCP tools
+      (prefixed with "drupal_"). Requires the Drupal MCP module installed and enabled.
 
     # Drupal MCP server endpoint - uses internal DDEV network address
     server_url: "http://web/mcp/post"

@@ -97,6 +97,7 @@ echo "✅ Devcontainer is ready."
 # ==============================================================================
 # SSH key generation and distribution (ephemeral)
 # ==============================================================================
+DDEV_USER=""  # set below when web container is reachable
 echo ""
 echo "🔐 Setting up SSH connectivity between agents and web containers..."
 
@@ -188,7 +189,8 @@ fi
 # VS Code requires MCP servers to be in User/mcp.json with a "gallery" field
 # for registryOnly access mode. This pre-populates it so the server is
 # auto-enabled without manual @mcp gallery installation.
-WDRMCP_VERSION=$(docker exec "$AGENTS_CONTAINER" npm view @wunderio/wdrmcp version 2>/dev/null || echo "0.1.17")
+WDRMCP_VERSION=$(docker exec "$AGENTS_CONTAINER" bash -c "npm ls -g @wunderio/wdrmcp --json 2>/dev/null | jq -r '.dependencies[\"@wunderio/wdrmcp\"].version // empty'" || echo "")
+[ -z "$WDRMCP_VERSION" ] && WDRMCP_VERSION="0.1.17"
 SUPERGATEWAY_VERSION=$(docker exec "$AGENTS_CONTAINER" npm view supergateway version 2>/dev/null || echo "3.4.3")
 docker exec -i -u vscode "$AGENTS_CONTAINER" bash -c '
     mkdir -p ~/.vscode-server/data/User
@@ -198,13 +200,14 @@ docker exec -i -u vscode "$AGENTS_CONTAINER" bash -c '
   "servers": {
     "wdrmcp": {
       "type": "stdio",
-      "command": "npx",
+      "command": "bash",
       "args": [
-        "-y",
-        "@wunderio/wdrmcp@${WDRMCP_VERSION}",
-        "--tools-config",
-        "/workspace/.agents/tools-config"
+        "-c",
+        "set -a; export DDEV_SSH_USER=${DDEV_USER:-}; [ -f /workspace/.env ] && source /workspace/.env; exec npx -y @wunderio/wdrmcp@${WDRMCP_VERSION} --tools-config /workspace/.agents/tools-config"
       ],
+      "env": {
+        "DDEV_SSH_USER": "${DDEV_USER:-}"
+      },
       "gallery": "https://mcp.wdr.io",
       "version": "${WDRMCP_VERSION}"
     },
@@ -260,6 +263,58 @@ docker exec -u vscode "$AGENTS_CONTAINER" bash -c '
 echo "✅ ~/.copilot symlinked to /workspace/.copilot"
 
 # ==============================================================================
+# Persist Claude Code auth state via host bind-mount
+# ==============================================================================
+# $HOME/.ddev-agents/projects/${DDEV_PROJECT}/claude on the host is bind-mounted
+# to /home/vscode/.claude-state in the container (see docker-compose.agents.yaml).
+# The host directory is created by the pre-start hook in config.agents.yaml so
+# it exists before the bind-mount attaches at container start. Inside the
+# container, ~/.claude and ~/.claude.json are symlinked into the state dir so
+# all Claude CLI writes hit the host directory and persist across restarts.
+# State is per-project (one dir per DDEV project on the host) — Claude Code
+# keys per-project state by cwd, and every project's cwd is /workspace, so
+# sharing across projects would mix chat history and per-project settings.
+#
+# Known untested case: Linux host where the user's UID is not 1000. The
+# bind-mounted directory will be owned by the host UID, but `vscode` inside
+# the container is UID 1000, so the `mkdir` / `chmod` below may EACCES. This
+# addon currently has no Linux users; if one shows up, the likely fix is to
+# either match the container UID to the host user or chown the state dir
+# from a privileged throwaway container (the old named-volume approach did
+# the latter; see git history for `commands/host/claude` before this refactor).
+
+docker exec -u vscode "$AGENTS_CONTAINER" bash -c '
+    STATE="/home/vscode/.claude-state"
+    mkdir -p "$STATE/claude" "$STATE/config"
+    chmod 700 "$STATE"
+
+    # Migrate any pre-existing non-symlink ~/.claude / ~/.claude.json into the
+    # state dir before symlinking. Without this, a fresh container would shadow
+    # whatever is in the state dir with empty defaults.
+    if [ -e ~/.claude.json ] && [ ! -L ~/.claude.json ]; then
+        if ! mv ~/.claude.json "$STATE/claude.json"; then
+            echo "⚠️  Could not migrate ~/.claude.json into $STATE — original left in place" >&2
+            exit 1
+        fi
+    fi
+    if [ -e ~/.claude ] && [ ! -L ~/.claude ]; then
+        if cp -rT ~/.claude "$STATE/claude" && rm -rf ~/.claude; then
+            :
+        else
+            echo "⚠️  Could not migrate ~/.claude into $STATE — original left in place" >&2
+            exit 1
+        fi
+    fi
+
+    # Initialise claude.json with valid empty JSON if missing.
+    [ -s "$STATE/claude.json" ] || echo "{}" > "$STATE/claude.json"
+
+    ln -sfn "$STATE/claude.json" ~/.claude.json
+    ln -sfn "$STATE/claude"      ~/.claude
+'
+echo "✅ ~/.claude and ~/.claude.json symlinked to /home/vscode/.claude-state"
+
+# ==============================================================================
 # Generate Copilot CLI MCP config
 # ==============================================================================
 if [ -d "$PROJECT_ROOT/.agents/tools-config" ]; then
@@ -304,6 +359,59 @@ if [ -d "$PROJECT_ROOT/.agents/tools-config" ]; then
 }
 MCPCONFIG
     echo "✅ MCP config generated for Copilot CLI (~/.copilot/mcp-config.json)"
+fi
+
+# ==============================================================================
+# Generate Claude Code CLI MCP config (.mcp.json)
+# ==============================================================================
+# Claude Code reads MCP servers from .mcp.json at the project root.
+# We merge our wdrmcp server into the existing file (preserving any
+# user-defined servers) or create a new one if it doesn't exist.
+
+MCP_JSON="$PROJECT_ROOT/.mcp.json"
+
+# Build the wdrmcp server object using jq for safe JSON escaping
+WDRMCP_SERVER=$(jq -n \
+    --arg cmd "set -a; export DDEV_SSH_USER=${DDEV_USER:-}; [ -f /workspace/.env ] && source /workspace/.env; exec npx -y @wunderio/wdrmcp@${WDRMCP_VERSION} --tools-config /workspace/.agents/tools-config" \
+    --arg ssh_user "${DDEV_USER:-}" \
+    '{
+        "command": "bash",
+        "args": ["-c", $cmd],
+        "env": {"DDEV_SSH_USER": $ssh_user}
+    }')
+
+# Build the wunder-quality-system server object
+WQS_SERVER=$(jq -n \
+    '{
+        "type": "http",
+        "url": "https://quality.wunder.io/mcp",
+        "headers": {"Authorization": "Bearer ${WQS_MCP_API_KEY}"}
+    }')
+
+if [ -f "$MCP_JSON" ]; then
+    # Merge servers into existing .mcp.json (preserves other user-defined servers)
+    jq --argjson wdrmcp "$WDRMCP_SERVER" --argjson wqs "$WQS_SERVER" \
+        '.mcpServers.wdrmcp = $wdrmcp | .mcpServers["wunder-quality-system"] = $wqs' \
+        "$MCP_JSON" > "${MCP_JSON}.tmp" && mv "${MCP_JSON}.tmp" "$MCP_JSON"
+    echo "✅ Claude Code MCP config merged into existing .mcp.json"
+else
+    # Create fresh .mcp.json
+    jq -n --argjson wdrmcp "$WDRMCP_SERVER" --argjson wqs "$WQS_SERVER" \
+        '{"mcpServers": {"wdrmcp": $wdrmcp, "wunder-quality-system": $wqs}}' > "$MCP_JSON"
+    echo "✅ Claude Code MCP config written to .mcp.json"
+
+    # Add to .gitignore only when we created the file (if the user already
+    # had .mcp.json they are managing it themselves).
+    GITIGNORE="$PROJECT_ROOT/.gitignore"
+    if [ -f "$GITIGNORE" ]; then
+        if ! grep -qxF '.mcp.json' "$GITIGNORE"; then
+            printf '\n# Auto-generated by ddev-agents — MCP server config for Claude Code\n.mcp.json\n' >> "$GITIGNORE"
+            echo "✅ Added .mcp.json to .gitignore"
+        fi
+    else
+        printf '# Auto-generated by ddev-agents — MCP server config for Claude Code\n.mcp.json\n' > "$GITIGNORE"
+        echo "✅ Created .gitignore with .mcp.json entry"
+    fi
 fi
 
 echo ""

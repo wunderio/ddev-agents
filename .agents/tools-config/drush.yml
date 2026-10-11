@@ -5,39 +5,10 @@ tools:
   - name: drush
     enabled: true
     description: |
-      Execute Drush commands for Drupal site management.
-
-      Best practice: Always check site status before operations.
-
-      USAGE CONTRACT:
-      - "command" must be a bare Drush command name only (no flags, no operands).
-      - "args" is a string array; each flag or operand is one element.
-      - Operands (module names, entity IDs, etc.) go in args, not command.
-
-      VALID examples:
-      - {"command": "status"}
-      - {"command": "core:status", "args": ["--format=json"]}
-      - {"command": "pm:list", "args": ["--fields=name,status", "--format=json"]}
-      - {"command": "pm:enable", "args": ["mcp", "-y"]}
-      - {"command": "config:get", "args": ["system.site"]}
-
-      INVALID examples (will fail):
-      - {"command": "status --format=json"} — flags must go in args
-      - {"command": "en mcp"} — operands must go in args
-      - {"args": "--format=json"} — args must be an array, not a string
-
-      BLOCKED commands (use dedicated tools instead):
-      - cr / cache-rebuild → use "drush_cr" tool
-      - sql-drop → use "drush_sql_drop" tool
-      - site-install → use "drush_site_install" tool
-      - sql-sync → not permitted
-
-      NEVER use --db-url. Drush auto-configures the database connection from
-      Drupal's settings.php via environment variables. Adding --db-url bypasses
-      this and causes SSL/TLS errors.
-
-      For running PHP code, use the "drush_php_eval" tool instead of drush
-      eval/php-eval (which have escaping and parsing issues).
+      Run Drush commands in the web container. "command" is the bare command name only;
+      flags and operands go in "args" as separate array elements. Never use --db-url.
+      For cache rebuild use drush_cr; for PHP eval use drush_php_eval.
+      Blocked: cr, sql-drop, sql-sync, site-install (use dedicated tools).
 
     type: command
     command_template: "vendor/bin/drush {command} {args}"
@@ -79,34 +50,18 @@ tools:
       properties:
         command:
           type: string
-          description: >
-            Drush command name ONLY — no flags, no operands, no spaces.
-            Valid: "status", "core:status", "pm:list", "pm:enable", "config:get".
-            Invalid: "status --format=json", "en mcp".
+          description: Bare Drush command name — no flags, no operands, no spaces.
         args:
           type: array
           items:
             type: string
-          description: >
-            Each flag, option, or operand as a separate array element.
-            Valid: ["--format=json"], ["mcp", "-y"], ["--fields=name,status", "--format=list"].
-            DO NOT use --db-url.
+          description: Each flag, option, or operand as a separate array element. Never include --db-url.
       required:
         - command
 
   - name: drush_cr
     enabled: true
-    description: |
-      Clear and rebuild all Drupal caches.
-
-      This is the dedicated command for cache rebuild (drush cr/cache-rebuild).
-      Use this instead of the generic drush command for cache operations.
-
-      This command is fast and safe to run at any time. It's commonly used:
-      - After installing or enabling modules
-      - After configuration changes
-      - After code changes that affect cached data
-      - When debugging issues that may be cache-related
+    description: Clear and rebuild all Drupal caches.
 
     type: command
     command_template: "vendor/bin/drush cache:rebuild"
@@ -120,11 +75,7 @@ tools:
 
   - name: drush_sql_drop
     enabled: true
-    description: |
-      Safely drop the Drupal database using environment-configured connection.
-
-      This is a safe alternative to 'drush sql-drop' that avoids --db-url issues.
-      Database is configured via environment variables, not connection strings.
+    description: Drop the Drupal database. Safe alternative to drush sql-drop.
 
     type: command
     command_template: "vendor/bin/drush sql-drop -y --extra=--skip-ssl 2>&1 || true"
@@ -139,12 +90,8 @@ tools:
   - name: drush_site_install
     enabled: true
     description: |
-      Safely install/reinstall Drupal using environment-configured database.
-
-      This is a safe alternative that avoids --db-url issues. Database must be
-      pre-dropped before installation (use drush_sql_drop first).
-
-      Parameters control admin account and installation profile.
+      Install or reinstall Drupal. Run drush_sql_drop first.
+      Controls installation profile and admin credentials.
 
     type: command
     command_template: "vendor/bin/drush site-install {profile} -y --account-name={admin_name} --account-pass={admin_pass} --extra=--skip-ssl"
@@ -176,11 +123,8 @@ tools:
   - name: logs_watchdog
     enabled: true
     description: |
-      Read Drupal watchdog logs from the database.
-
-      Shows application-level logs stored in Drupal's watchdog table (dblog module).
-      Requires drush and dblog module to be enabled.
-      Default: Last 100 entries. Maximum: 1000 entries.
+      Read Drupal watchdog (dblog) logs. Requires dblog module.
+      Default 100 entries, max 1000.
 
     type: command
     command_template: "vendor/bin/drush watchdog:show --count={lines}"
@@ -200,32 +144,9 @@ tools:
   - name: drush_php_eval
     enabled: true
     description: |
-      Execute PHP code with full Drupal bootstrap context.
-
-      Use this for:
-      - Testing code snippets before implementation
-      - Exploring Drupal APIs and data structures
-      - Debugging application state
-      - Querying entities and configuration
-      - One-off data operations
-
-      DO NOT use for:
-      - Operations available via drush (use drush instead)
-      - Database operations (use drush sql-* or create proper migrations)
-
-      CODE SIZE LIMIT: 16 384 characters max. If your code is longer, use
-      "drush_php_script" instead — write the code to a file and execute it.
-
-      PATH NORMALIZATION: File paths in your code must use /var/www/html/ (the
-      container path), not /workspace/. The devcontainer's /workspace/ is bind-
-      mounted to /var/www/html/ inside the web container where Drush runs.
-
-      The code runs in the context of a bootstrapped Drupal site with all APIs available.
-
-      Examples:
-      - Get node count: echo \Drupal::entityQuery('node')->count()->execute();
-      - List content types: print_r(array_keys(\Drupal::entityTypeManager()->getStorage('node_type')->loadMultiple()));
-      - Check module status: echo \Drupal::moduleHandler()->moduleExists('views') ? 'enabled' : 'disabled';
+      Execute PHP code with full Drupal bootstrap. Use /var/www/html/ paths (not /workspace/).
+      Max 16 384 chars — use drush_php_script for longer code.
+      Prefer dedicated drush tools for operations that have them.
 
     type: command
     command_template: "vendor/bin/drush php:eval {code}"
@@ -239,37 +160,16 @@ tools:
       properties:
         code:
           type: string
-          description: |
-            PHP code to execute (without <?php tags).
-            Use single quotes in the code, as double quotes may cause issues.
-            Max 16 384 characters — use drush_php_script for longer code.
+          description: PHP code to execute (without <?php tags). Max 16 384 chars.
       required:
         - code
 
   - name: drush_php_script
     enabled: true
     description: |
-      Execute a PHP script file with full Drupal bootstrap context.
-
-      Use this instead of drush_php_eval when:
-      - Code exceeds the 16 384-character eval limit
-      - You need multi-file or complex logic
-      - You want to iterate on a script without re-sending the full code
-
-      PATH NORMALIZATION: The script must exist inside /var/www/html/ on the
-      web container. The devcontainer's /workspace/ is bind-mounted to
-      /var/www/html/, so a file you create at /workspace/scripts/foo.php
-      should be referenced as scripts/foo.php (relative) or
-      /var/www/html/scripts/foo.php (absolute).
-
-      EXTRA ARGUMENTS: Any values in "args" are available inside the script via
-      the $extra variable (a string of all arguments joined by spaces). You can
-      also access them via drush_get_arguments() or the $extra convention
-      documented in `drush topic docs:script`.
-
-      Examples:
-      - Run a script: {"script_path": "scripts/migrate.php"}
-      - With args:    {"script_path": "scripts/fix.php", "args": ["--force", "node"]}
+      Run a PHP script file with Drupal bootstrap. Script path relative to /var/www/html/.
+      /workspace/ in agents container = /var/www/html/ in web container.
+      Script args available as $extra inside the script.
 
     type: command
     command_template: "vendor/bin/drush php:script {script_path} {args}"
@@ -285,15 +185,11 @@ tools:
       properties:
         script_path:
           type: string
-          description: |
-            Path to the PHP script file (without <?php tags in the file is fine —
-            Drush handles it). Relative paths resolve from /var/www/html/.
+          description: Path to the PHP script. Relative paths resolve from /var/www/html/.
         args:
           type: array
           items:
             type: string
-          description: |
-            Extra arguments passed to the script. Available in the script as
-            the $extra variable. Each element is shell-escaped separately.
+          description: Extra arguments passed to the script; available as $extra inside the script.
       required:
         - script_path

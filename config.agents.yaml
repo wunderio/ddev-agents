@@ -1,10 +1,15 @@
 #ddev-generated
 # Hooks configuration for ddev-agents addon
-# This file configures DDEV to build the devcontainer image before starting
+# This file configures DDEV to build the devcontainer image before starting,
+# and to prepare host-side directories that Docker bind-mounts depend on.
 
 hooks:
   pre-start:
     - exec-host: .ddev/commands/host/build-devcontainer
+    # Ensure the Claude auth host directory exists before Docker bind-mounts it.
+    # If missing, Docker creates it as root on Linux, breaking write access for
+    # the vscode user inside the container.
+    - exec-host: mkdir -p "$HOME/.ddev-agents/projects/$DDEV_PROJECT/claude" && chmod 700 "$HOME/.ddev-agents/projects/$DDEV_PROJECT/claude"
 
   post-start:
     - exec-host: .ddev/commands/host/set-up

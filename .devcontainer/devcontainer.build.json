@@ -27,6 +27,8 @@
       "installZsh": true,
       "configureZshAsDefaultShell": true
     },
-    "ghcr.io/devcontainers-extra/features/ripgrep:1": {}
+    "ghcr.io/devcontainers-extra/features/ripgrep:1": {},
+    "./features/claude": {},
+    "./features/browser-deps": {}
   }
 }

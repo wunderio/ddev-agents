@@ -72,30 +72,7 @@ tools:
       Adds packages and updates composer.lock.
 
       Supports multiple packages in a single call — prefer this over separate
-      calls when installing related packages together:
-        {"packages": ["drupal/pathauto", "drupal/token:^1.0"]}
-        {"packages": ["drupal/mcp_server", "drupal/tool"], "args": ["--ignore-platform-req=ext-gd"]}
-
-      Single package still works:
-        {"packages": ["drupal/pathauto"]}
-
-      Troubleshooting installation failures:
-
-      1. **PHP Version Incompatibility** - Package may require different PHP version
-         - Check PHP version: Use drush_php_eval "echo PHP_VERSION;"
-         - Check composer.json: Look for "platform" sections with PHP constraints
-         - Try: args: ["--ignore-platform-req=php-ext-*"]
-
-      2. **Stability Constraints** - Package below minimum-stability threshold
-         - Try: packages: ["drupal/package:@dev"] (or @beta, @alpha)
-         - Or update composer.json "minimum-stability" to "dev"
-
-      3. **Memory Errors** - Large installation can exceed PHP memory limit
-         - Try: Use COMPOSER_MEMORY_LIMIT=-1 environment variable
-
-      4. **Dependency Conflicts** - New package conflicts with existing ones
-         - Try: args: ["--with-all-dependencies"]
-         - This updates related packages to compatible versions
+      calls when installing related packages together.
 
     type: command
     command_template: "composer require {packages} {args}"
