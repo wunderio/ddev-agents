@@ -3,12 +3,14 @@ version: 1.0.0
 description: "Standardized AI Agent environment for Wunder.io projects."
 
 project_files:
+  - agents.sensitive-paths.txt
   - docker-compose.agents.yaml
   - config.agents.yaml
   - .devcontainer/devcontainer.json
   - .devcontainer/devcontainer.build.json
-  - commands/host/copilot
   - commands/host/build-devcontainer
+  - commands/host/copilot
+  - commands/host/create-sensitive-path-mounts
   - commands/host/set-up
   - copilot-managed-config.json
   - .agents
@@ -19,6 +21,22 @@ post_install_actions:
   - mkdir -p ../.agents
   - cp -a .agents/. ../.agents/
   - rm -rf .agents
+  # Add the sensitive path config file and the Docker compose file to .gitignore.
+  - |
+      GITIGNORE="../.gitignore"
+      FILES_TO_IGNORE=(
+        ".ddev/agents.sensitive-paths.txt"
+        ".ddev/docker-compose.agents-sensitive-paths.yaml"
+      )
+      touch "$GITIGNORE"
+      for FILE in "${FILES_TO_IGNORE[@]}"; do
+        if ! grep -Fxq "$FILE" "$GITIGNORE"; then
+          # Add a newline before the first entry if needed.
+          [ -n "$(tail -c1 "$GITIGNORE" 2>/dev/null)" ] && echo "" >> "$GITIGNORE"
+          echo "$FILE" >> "$GITIGNORE"
+          echo "✅ Added $FILE to .gitignore"
+        fi
+      done
   - '[ -f web-build/Dockerfile ] && grep -q "#ddev-generated" web-build/Dockerfile && rm web-build/Dockerfile || true' # Deprecate in 2.0
   - echo "🚀 DDEV Agents installed."
   - echo "👉 Run 'ddev restart' to build the Agents container."

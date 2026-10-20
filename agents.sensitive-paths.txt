@@ -1,0 +1,12 @@
+# The configuration file for the wunderio/ddev-agents add-on.
+#
+# Sensitive paths are specific paths that should be inaccessible
+# by AI CLI tools within the agents container. These paths are
+# effectively masked by being mounted to /dev/null.
+#
+# Define each sensitive path on a separate line.
+# Sensitive path should be relative to project root.
+# Empty lines and lines starting with '#' are ignored.
+#
+# See "commands/host/create-sensitive-path-mounts" for path guidelines.
+
