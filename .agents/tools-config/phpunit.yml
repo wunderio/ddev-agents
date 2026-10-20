@@ -78,6 +78,7 @@ tools:
     ssh_target: "web"
     ssh_user: "${DDEV_SSH_USER}"
     working_dir: "/var/www/html"
+    timeout: 300
 
     input_schema:
       type: object
