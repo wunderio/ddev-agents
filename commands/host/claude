@@ -1,0 +1,38 @@
+#!/usr/bin/env bash
+
+## #ddev-generated
+## Description: Run Claude Code CLI in the agents container
+## Usage: claude [flags] [args]
+## Example: "ddev claude" or "ddev claude -p 'explain this function'"
+
+CONTAINER="ddev-${DDEV_PROJECT}-agents"
+
+# Verify container is running
+if ! docker inspect --format='{{.State.Running}}' "$CONTAINER" 2>/dev/null | grep -q true; then
+  echo "Error: agents container not running. Run 'ddev start' first."
+  exit 1
+fi
+
+# Defensive symlink check (normally handled by `ddev set-up` post-start hook).
+# Runs in milliseconds. Migration of non-symlink state is intentionally NOT
+# done here — that's set-up's job. Here we only ensure the symlinks exist
+# on top of a clean state dir.
+docker exec -u vscode "$CONTAINER" bash -c '
+  STATE="/home/vscode/.claude-state"
+  if [ ! -L "$HOME/.claude.json" ] || [ ! -L "$HOME/.claude" ]; then
+    mkdir -p "$STATE/claude" "$STATE/config"
+    [ -s "$STATE/claude.json" ] || echo "{}" > "$STATE/claude.json"
+    ln -sfn "$STATE/claude.json" "$HOME/.claude.json"
+    ln -sfn "$STATE/claude"      "$HOME/.claude"
+  fi
+'
+
+# TTY detection for interactive vs headless
+TTY_FLAGS="-i"
+if [ -t 0 ]; then
+  TTY_FLAGS="-it"
+fi
+
+# Execute claude, passing through all arguments
+docker exec $TTY_FLAGS -w /workspace "$CONTAINER" \
+  /home/vscode/.local/bin/claude "$@"

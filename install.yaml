@@ -2,14 +2,28 @@ name: ddev-agents
 version: 1.0.0
 description: "Standardized AI Agent environment for Wunder.io projects."
 
+# All project_files must contain a #ddev-generated marker so that
+# "ddev addon get" can overwrite them on updates. Without it, DDEV
+# treats the file as user-customized and skips it.
+# Exception: docker-compose.agents-volumes.yaml deliberately has no marker so
+# it is installed once and then left alone (it holds per-project overlays).
 project_files:
   - docker-compose.agents.yaml
+  - docker-compose.agents-env.yaml
+  - docker-compose.agents-volumes.yaml
   - config.agents.yaml
   - .devcontainer/devcontainer.json
   - .devcontainer/devcontainer.build.json
+  - .devcontainer/features/claude/devcontainer-feature.json
+  - .devcontainer/features/claude/install.sh
+  - .devcontainer/features/browser-deps/devcontainer-feature.json
+  - .devcontainer/features/browser-deps/install.sh
+  - commands/host/claude
   - commands/host/copilot
   - commands/host/build-devcontainer
   - commands/host/set-up
+  - scripts/claude-bootstrap.sh
+  - claude-managed-settings.json
   - copilot-managed-config.json
   - .agents
   - web-build
@@ -23,4 +37,7 @@ post_install_actions:
   - echo "🚀 DDEV Agents installed."
   - echo "👉 Run 'ddev restart' to build the Agents container."
   - echo "👉 Then reopen VS Code in the Container."
+  - echo "👉 Or run 'ddev claude' to use Claude Code from the CLI."
   - echo "👉 Or run 'ddev copilot' from the CLI."
+  - echo "👉 Edit .ddev/docker-compose.agents-env.yaml to forward web_environment variables to the agents container."
+  - echo "👉 macOS host freezing during agent runs (endpoint-security/EDR)? See .ddev/docker-compose.agents-volumes.yaml."

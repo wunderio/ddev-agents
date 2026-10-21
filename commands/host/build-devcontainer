@@ -2,10 +2,18 @@
 #ddev-generated
 
 ## Description: Build devcontainer image before DDEV starts
-## Usage: build-devcontainer
-## Example: "ddev build-devcontainer"
+## Usage: build-devcontainer [--no-cache]
+## Example: "ddev build-devcontainer" or "ddev build-devcontainer --no-cache"
+## Flags: [{"Name":"no-cache","Usage":"Skip Docker build cache (forces full rebuild)"}]
 
 set -e
+
+NO_CACHE=""
+for arg in "$@"; do
+    case "$arg" in
+        --no-cache) NO_CACHE="--no-cache" ;;
+    esac
+done
 
 echo "🔨 Building devcontainer image..."
 
@@ -38,8 +46,10 @@ echo "✅ All required tools are available."
 PROJECT_ROOT="$(cd "$(dirname "$0")/../../.." && pwd)"
 cd "$PROJECT_ROOT"
 
-# Get DDEV project name
-DDEV_PROJECT=$(ddev describe -j | jq -r '.raw.name' 2>/dev/null || echo "ddev-agents")
+# Get DDEV project name - DDEV sets $DDEV_PROJECT for exec-host hooks automatically.
+# Avoid re-reading it via `ddev describe -j` since DDEV_DEBUG mode injects extra JSON
+# objects into stdout that break jq parsing.
+: "${DDEV_PROJECT:=ddev-agents}"
 
 echo "🔍 Project: $DDEV_PROJECT"
 echo "🔨 Building image: ddev-${DDEV_PROJECT}-devcontainer:latest"
@@ -71,19 +81,24 @@ echo "📍 Node.js version: $NODE_VERSION"
 
 # Create a temp copy of build config with resolved placeholders
 BUILD_CONFIG_TEMPLATE="$PROJECT_ROOT/.devcontainer/devcontainer.build.json"
-BUILD_CONFIG=$(mktemp "${TMPDIR:-/tmp}/devcontainer-build-XXXXXX.json")
+BUILD_CONFIG="$PROJECT_ROOT/.devcontainer/devcontainer.build.resolved.json"
 sed -e "s|__PHP_VERSION__|${PHP_VERSION}|g" \
     -e "s|__NODE_VERSION__|${NODE_VERSION}|g" \
     -e "s|__PROJECT_NAME__|${DDEV_PROJECT}|g" \
     "$BUILD_CONFIG_TEMPLATE" > "$BUILD_CONFIG"
 
-echo "🚀 Building with devcontainer CLI (features will be installed)..."
+if [ -n "$NO_CACHE" ]; then
+    echo "🚀 Building with devcontainer CLI (no cache — full rebuild)..."
+else
+    echo "🚀 Building with devcontainer CLI (features will be installed)..."
+fi
 
 # Build using devcontainer CLI - this will install all the features
 devcontainer build \
     --workspace-folder "$PROJECT_ROOT" \
     --image-name "ddev-${DDEV_PROJECT}-devcontainer:latest" \
-    --config "$BUILD_CONFIG"
+    --config "$BUILD_CONFIG" \
+    $NO_CACHE
 
 BUILD_EXIT_CODE=$?
 
