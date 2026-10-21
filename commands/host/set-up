@@ -328,15 +328,24 @@ WDRMCP_SERVER=$(jq -n \
         "env": {"DDEV_SSH_USER": $ssh_user}
     }')
 
+# Build the wunder-quality-system server object
+WQS_SERVER=$(jq -n \
+    '{
+        "type": "http",
+        "url": "https://quality.wunder.io/mcp",
+        "headers": {"Authorization": "Bearer ${WQS_MCP_API_KEY}"}
+    }')
+
 if [ -f "$MCP_JSON" ]; then
-    # Merge wdrmcp into existing .mcp.json (preserves other servers)
-    jq --argjson server "$WDRMCP_SERVER" '.mcpServers.wdrmcp = $server' \
+    # Merge servers into existing .mcp.json (preserves other user-defined servers)
+    jq --argjson wdrmcp "$WDRMCP_SERVER" --argjson wqs "$WQS_SERVER" \
+        '.mcpServers.wdrmcp = $wdrmcp | .mcpServers["wunder-quality-system"] = $wqs' \
         "$MCP_JSON" > "${MCP_JSON}.tmp" && mv "${MCP_JSON}.tmp" "$MCP_JSON"
     echo "✅ Claude Code MCP config merged into existing .mcp.json"
 else
     # Create fresh .mcp.json
-    jq -n --argjson server "$WDRMCP_SERVER" \
-        '{"mcpServers": {"wdrmcp": $server}}' > "$MCP_JSON"
+    jq -n --argjson wdrmcp "$WDRMCP_SERVER" --argjson wqs "$WQS_SERVER" \
+        '{"mcpServers": {"wdrmcp": $wdrmcp, "wunder-quality-system": $wqs}}' > "$MCP_JSON"
     echo "✅ Claude Code MCP config written to .mcp.json"
 
     # Add to .gitignore only when we created the file (if the user already
