@@ -12,6 +12,8 @@
       "WebSearch",
       "WebFetch",
 
+      "mcp__wdrmcp__*",
+
       "Bash(ls *)",
       "Bash(echo *)",
       "Bash(test *)",

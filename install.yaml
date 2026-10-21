@@ -11,6 +11,8 @@ project_files:
   - config.agents.yaml
   - .devcontainer/devcontainer.json
   - .devcontainer/devcontainer.build.json
+  - .devcontainer/features/claude/devcontainer-feature.json
+  - .devcontainer/features/claude/install.sh
   - commands/host/claude
   - commands/host/copilot
   - commands/host/build-devcontainer

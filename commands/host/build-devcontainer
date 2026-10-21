@@ -73,7 +73,7 @@ echo "📍 Node.js version: $NODE_VERSION"
 
 # Create a temp copy of build config with resolved placeholders
 BUILD_CONFIG_TEMPLATE="$PROJECT_ROOT/.devcontainer/devcontainer.build.json"
-BUILD_CONFIG=$(mktemp "${TMPDIR:-/tmp}/devcontainer-build-XXXXXX.json")
+BUILD_CONFIG="$PROJECT_ROOT/.devcontainer/devcontainer.build.resolved.json"
 sed -e "s|__PHP_VERSION__|${PHP_VERSION}|g" \
     -e "s|__NODE_VERSION__|${NODE_VERSION}|g" \
     -e "s|__PROJECT_NAME__|${DDEV_PROJECT}|g" \

@@ -306,5 +306,32 @@ MCPCONFIG
     echo "✅ MCP config generated for Copilot CLI (~/.copilot/mcp-config.json)"
 fi
 
+# ==============================================================================
+# Generate Claude Code CLI MCP config
+# ==============================================================================
+# Written to the project's .claude/settings.local.json so that `ddev claude`
+# picks up wdrmcp automatically. DDEV_SSH_USER is injected via env so Claude's
+# MCP subprocess gets it without needing to source .bashrc/.zshrc.
+mkdir -p "$PROJECT_ROOT/.claude"
+cat > "$PROJECT_ROOT/.claude/settings.local.json" <<CLAUDEMCP
+{
+  "mcpServers": {
+    "wdrmcp": {
+      "command": "npx",
+      "args": [
+        "-y",
+        "@wunderio/wdrmcp@${WDRMCP_VERSION}",
+        "--tools-config",
+        "/workspace/.agents/tools-config"
+      ],
+      "env": {
+        "DDEV_SSH_USER": "${DDEV_USER:-}"
+      }
+    }
+  }
+}
+CLAUDEMCP
+echo "✅ Claude Code MCP config written (.claude/settings.local.json)"
+
 echo ""
 echo "✅ Setup complete. Open VS Code and select 'Reopen in Container' to attach."
