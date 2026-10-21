@@ -22,8 +22,11 @@ project_files:
   - commands/host/copilot
   - commands/host/build-devcontainer
   - commands/host/set-up
+  - commands/host/agents-worktree-prune
   - scripts/claude-bootstrap.sh
+  - scripts/agents-worktree.sh
   - claude-managed-settings.json
+  - claude-managed-instructions.md
   - copilot-managed-config.json
   - .agents
   - web-build
@@ -40,4 +43,5 @@ post_install_actions:
   - echo "👉 Or run 'ddev claude' to use Claude Code from the CLI."
   - echo "👉 Or run 'ddev copilot' from the CLI."
   - echo "👉 Edit .ddev/docker-compose.agents-env.yaml to forward web_environment variables to the agents container."
+  - echo "👉 Parallel agents, one Drupal environment per git worktree: ddev add-on get fourkitchens/ddev-fire-worktrees (see .agents/WORKTREES.md)."
   - echo "👉 macOS host freezing during agent runs (endpoint-security/EDR)? See .ddev/docker-compose.agents-volumes.yaml."

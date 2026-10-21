@@ -23,6 +23,10 @@ This repository is a **DDEV add-on** distributed via `ddev addon get wunderio/dd
 | `commands/host/build-devcontainer` | DDEV host command — builds the devcontainer image via `devcontainer build` |
 | `commands/host/set-up` | DDEV host command — applies devcontainer metadata to the already-running container |
 | `commands/host/copilot` | DDEV host command — runs `gh copilot` inside the agents container |
+| `commands/host/agents-worktree-prune` | DDEV host command — deletes agents state left behind by removed ddev-fire-worktrees worktrees |
+| `scripts/agents-worktree.sh` | `pre-start` hook — in a ddev-fire-worktrees worktree, writes the agents overlay (read-only `.git` mount, env vars) and copies the main checkout's Claude login |
+| `claude-managed-instructions.md` | Managed `CLAUDE.md` for Claude Code in the container (environment + worktree rules) |
+| `.agents/WORKTREES.md` | Worktree guide for agents and users, copied into consumer projects |
 
 ### Lifecycle flow
 

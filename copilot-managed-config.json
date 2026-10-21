@@ -9,6 +9,7 @@
       "git reset --hard*",
       "git clean -f*",
       "git branch -D*",
+      "git worktree*",
       "npm publish*",
       "composer publish*",
       "ssh *",

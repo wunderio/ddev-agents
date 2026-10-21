@@ -116,6 +116,7 @@ If you run agents while still on your host machine, you lose the safety of the i
 -   **Claude Code (Teams)**: Includes the `claude` CLI, authenticated against a Claude for Teams subscription (no personal API keys required).
 -   **Secure Authentication**: Uses your host's `DDEV_AGENTS_GH_TOKEN` automatically, so you never have to type credentials inside the container.
 -   **Wunder Quality System MCP**: Pre-configured access to Wunder's quality standards and guidelines.
+-   **Git Worktrees**: With [ddev-fire-worktrees](#git-worktrees-one-drupal-environment-per-agent), every worktree gets its own Drupal site, database copy and agents container, so agents can work in parallel.
 
 ## Architecture
 
@@ -280,6 +281,131 @@ ddev restart
 ```
 
 `ddev restart` triggers the `pre-start` hook (which recreates the empty host directory) and the `post-start` hook (which re-initialises the in-container symlinks and an empty `claude.json`). Then run `ddev claude login` to re-authenticate.
+
+## Git Worktrees: One Drupal Environment per Agent
+
+Running several agents in parallel on the same project needs more than separate
+checkouts: each needs its own site and database to build, migrate and test against.
+[fourkitchens/ddev-fire-worktrees](https://github.com/fourkitchens/ddev-fire-worktrees)
+turns every git worktree into a **full, separate DDEV project** (its own URL, web and
+database containers, and a copy of the main checkout's database), and ddev-agents gives
+each of those projects its own isolated `agents` container. One worktree is one branch,
+one Drupal site and one agent, and nothing it does touches the main site or the other
+worktrees.
+
+### Install (once per project)
+
+Requires DDEV **v1.25.4+** (for `ddev start --seed-snapshot`) and Git on the host.
+
+```bash
+ddev add-on get fourkitchens/ddev-fire-worktrees
+git add .ddev .agents && git commit -m "Add ddev-fire-worktrees"
+```
+
+Commit the add-on's files (and this add-on's): a new worktree only has the commands and
+hooks that its branch has. No `ddev restart` is needed; the worktree commands run on the
+host.
+
+### Project setup
+
+All settings are optional `web_environment` entries in `.ddev/config.yaml` (shared) or
+`.ddev/config.local.yaml` (personal). A good starting point for a Drupal project using
+ddev-agents:
+
+```yaml
+web_environment:
+  # Gitignored files each new worktree copies from the main checkout (never
+  # overwritten; missing files are skipped). The first two are the add-on's
+  # defaults; the last two are the agents' MCP credentials and the .env that
+  # wdrmcp sources.
+  - WORKTREE_COPY_FILES=.ddev/config.local.yaml web/sites/default/settings.local.php .agents/tools-config/.env .env
+  # Let a worktree start (and its agent carry on) even when drush deploy fails.
+  - WORKTREE_BUILD_FAILURE=warn
+```
+
+Other settings: `WORKTREE_NAME_PREFIX` (project/URL prefix), `WORKTREE_BASE_REF` (start
+point for new branches), `WORKTREE_DB` (`primary`, `latest`, `fresh` or a snapshot/dump),
+`WORKTREE_BUILD_COMMAND` (default `ddev drush deploy -y`, or `ddev site-build
+--skip-db-import` with ddev-fire), `WORKTREE_MOUNT_GIT`. See the add-on's
+[configuration docs](https://github.com/fourkitchens/ddev-fire-worktrees/blob/main/docs/configuration.md).
+
+Check these before you rely on worktrees:
+
+-   **No hard-coded hostnames.** Values such as `DRUSH_OPTIONS_URI=https://myproject.ddev.site`
+    in `config.yaml`, `settings.php` or `.ddev/docker-compose.agents-env.yaml` point a
+    worktree at the main site. Build them from `${DDEV_SITENAME}.${DDEV_TLD}` instead.
+-   **Files and search indexes are not copied.** Use Stage File Proxy for
+    `sites/default/files`, and reindex Search API in a worktree that needs it.
+-   **Volume overlay.** If you enabled `.ddev/docker-compose.agents-volumes.yaml`, each
+    worktree gets its own empty volumes; repeat the ownership + install bootstrap from that
+    file in the worktree (`ddev-<worktree-project>-agents`).
+-   **Agent instructions.** Claude Code in the agents container gets the worktree rules
+    automatically (see below). For other agents, point your `AGENTS.md` at
+    `.agents/WORKTREES.md`.
+
+### Usage
+
+All of these run on the **host**, never inside the agents container:
+
+```bash
+# New branch + worktree in ../<repo>-<branch>, with its own DDEV project,
+# a copy of the main database, composer install and drush deploy.
+ddev fire-worktree-create feature/abc-123-hero
+ddev fire-worktree-create --pr=123          # or check out a pull request
+
+cd ../myproject-feature-abc-123-hero
+ddev claude                                 # Claude Code, in this worktree's own agents container
+ddev copilot                                # or Copilot CLI
+ddev fire-worktree-info                     # URL, DB age and a one-time login link
+
+ddev fire-worktree-list                     # all worktrees, projects, status and URLs
+ddev fire-worktree-refresh --yes            # replace this worktree's DB with a fresh copy
+ddev fire-worktree-remove                   # delete the environment and the checkout (branch kept)
+ddev fire-worktree-prune --yes              # clean up environments of deleted checkouts
+ddev agents-worktree-prune --yes            # clean up agents state of deleted worktrees
+```
+
+For a worktree that already exists (created by `git worktree add`, Claude Code on the
+host, Cursor, Conductor, T3, Orca, ...), run `ddev fire-worktree-start` in it, **not**
+`ddev start` (which would create an empty database). The add-on's
+[agent tools guide](https://github.com/fourkitchens/ddev-fire-worktrees/blob/main/docs/agent-tools.md)
+has copy-paste setup and teardown lines for those tools. VS Code "Reopen in Container"
+also works per worktree: open the worktree's folder and it attaches to that worktree's
+agents container.
+
+### What ddev-agents does in a worktree
+
+A `pre-start` hook (`.ddev/scripts/agents-worktree.sh`) detects a worktree set up by
+`fire-worktree-start` and, only there:
+
+-   **Reuses the devcontainer image.** Each build is tagged with a fingerprint of its
+    inputs (`ddev-agents-devcontainer:cfg-<hash>`); a worktree with matching inputs tags
+    that image instead of building its own. Run `ddev build-devcontainer` in the worktree
+    to force a build.
+-   **Copies your Claude Code login** from the main checkout's project
+    (`~/.ddev-agents/projects/<main project>/claude`) the first time the worktree starts,
+    so you don't need a `ddev claude login` per worktree. Chat history stays per worktree.
+    Set `DDEV_AGENTS_WORKTREE_SHARE_AUTH=false` on the host to opt out. Both copies refresh
+    their own tokens, so if one ever reports being logged out, run `ddev claude login`
+    there.
+-   **Mounts the shared `.git` read-only** into the agents container (mirroring what
+    ddev-fire-worktrees does for the web container), so agents can run `git status`,
+    `diff` and `log`. Git writes fail by design; commit on the host.
+-   **Tells agents where they are**: `DDEV_AGENTS_WORKTREE=true` and
+    `DDEV_AGENTS_PRIMARY_PROJECT` are set in the container, and the managed Claude Code
+    instructions (`.ddev/claude-managed-instructions.md`, loaded from
+    `/etc/claude-code/CLAUDE.md`) explain the rules.
+-   **Keeps the checkout clean**: `.mcp.json`, `.copilot/` and the generated overlay are
+    ignored through `.git/info/exclude` instead of edits to `.gitignore`, because
+    `fire-worktree-remove` refuses to delete a dirty checkout.
+
+In every checkout, `ddev set-up` also sets `gc.worktreePruneExpire=never` in the agents
+container, and the managed Claude/Copilot policies deny `git worktree`. From inside a
+container every other worktree's path looks deleted, so pruning there would destroy their
+metadata.
+
+Each running worktree costs a full set of containers; `ddev stop` the ones you are not
+using.
 
 ## Wunder Quality System MCP
 

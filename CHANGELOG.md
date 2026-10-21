@@ -9,6 +9,29 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- Support for [fourkitchens/ddev-fire-worktrees](https://github.com/fourkitchens/ddev-fire-worktrees):
+  every git worktree gets its own DDEV project, Drupal site, database copy and `agents`
+  container, so agents can work in parallel. In a worktree, a new `pre-start` hook
+  (`scripts/agents-worktree.sh`) mounts the shared `.git` read-only into the agents
+  container, sets `DDEV_AGENTS_WORKTREE` / `DDEV_AGENTS_PRIMARY_PROJECT`, and copies the
+  main checkout's Claude Code login (opt out with `DDEV_AGENTS_WORKTREE_SHARE_AUTH=false`).
+  `build-devcontainer --reuse-in-worktree` reuses an image built from the same inputs
+  instead of rebuilding per worktree. Install, project setup and usage are in the README
+  section "Git Worktrees".
+- `ddev agents-worktree-prune` to delete the agents state (Claude login copy, chat history,
+  image tag) left behind by removed worktrees.
+- Managed Claude Code instructions (`claude-managed-instructions.md`, mounted at
+  `/etc/claude-code/CLAUDE.md`) describing the container and the worktree rules, and
+  `.agents/WORKTREES.md` with the full guide for agents and the people running them.
+
+### Changed
+
+- `ddev set-up` sets `gc.worktreePruneExpire=never` in the agents container, and the
+  managed Claude/Copilot policies deny `git worktree`: from inside a container every other
+  worktree looks deleted, so pruning there would destroy their metadata.
+- In a linked worktree, `ddev set-up` ignores `.mcp.json` and `.copilot` through
+  `.git/info/exclude` instead of editing the tracked `.gitignore`.
+
 - Opt-in dependency overlay (`docker-compose.agents-volumes.yaml`) to mitigate macOS
   host freezes under endpoint-security software (e.g. Bitdefender EDR). Moves heavy
   trees (`vendor/`, `node_modules/`) onto VM-local Docker named volumes so the agents

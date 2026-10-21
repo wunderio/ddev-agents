@@ -114,6 +114,7 @@
       "Bash(git reset --hard *)",
       "Bash(git clean -f *)",
       "Bash(git branch -D *)",
+      "Bash(git worktree *)",
       "Bash(git switch -f *)",
       "Bash(git switch --force *)",
       "Bash(git switch --discard-changes *)",
