@@ -1,4 +1,5 @@
 #!/bin/bash
+#ddev-generated
 set -e
 
 export DEBIAN_FRONTEND=noninteractive

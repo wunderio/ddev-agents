@@ -5,6 +5,8 @@ description: "Standardized AI Agent environment for Wunder.io projects."
 # All project_files must contain a #ddev-generated marker so that
 # "ddev addon get" can overwrite them on updates. Without it, DDEV
 # treats the file as user-customized and skips it.
+# Exception: docker-compose.agents-volumes.yaml deliberately has no marker so
+# it is installed once and then left alone (it holds per-project overlays).
 project_files:
   - docker-compose.agents.yaml
   - docker-compose.agents-env.yaml

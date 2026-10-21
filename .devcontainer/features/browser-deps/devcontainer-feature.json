@@ -1,4 +1,5 @@
 {
+  "_comment": "#ddev-generated",
   "id": "browser-deps",
   "version": "1.0.0",
   "name": "Headless Browser Dependencies",
