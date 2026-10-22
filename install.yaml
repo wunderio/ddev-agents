@@ -18,6 +18,7 @@ project_files:
   - .devcontainer/features/claude/install.sh
   - .devcontainer/features/browser-deps/devcontainer-feature.json
   - .devcontainer/features/browser-deps/install.sh
+  - .devcontainer/scripts/image-tag.sh
   - commands/host/claude
   - commands/host/copilot
   - commands/host/build-devcontainer

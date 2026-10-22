@@ -9,6 +9,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- Prebuilt devcontainer images on Docker Hub (`wunderio/ddev-agents-devcontainer`) for
+  every PHP version in `wunderio/silta-images` × supported Node.js majors (20+), for
+  `amd64` and `arm64`, rebuilt weekly by `.github/workflows/devcontainer-images.yml`.
+  `ddev build-devcontainer` pulls the matching image and falls back to the local build
+  when none exists. Tags carry a hash of the build config, so customized configs build
+  locally. Opt out with `--local` or `DDEV_AGENTS_LOCAL_BUILD=1`.
 - Opt-in dependency overlay (`docker-compose.agents-volumes.yaml`) to mitigate macOS
   host freezes under endpoint-security software (e.g. Bitdefender EDR). Moves heavy
   trees (`vendor/`, `node_modules/`) onto VM-local Docker named volumes so the agents

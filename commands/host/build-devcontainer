@@ -1,20 +1,91 @@
 #!/bin/bash
 #ddev-generated
 
-## Description: Build devcontainer image before DDEV starts
-## Usage: build-devcontainer [--no-cache]
-## Example: "ddev build-devcontainer" or "ddev build-devcontainer --no-cache"
-## Flags: [{"Name":"no-cache","Usage":"Skip Docker build cache (forces full rebuild)"}]
+## Description: Pull a prebuilt devcontainer image, or build it locally, before DDEV starts
+## Usage: build-devcontainer [--local] [--no-cache]
+## Example: "ddev build-devcontainer" or "ddev build-devcontainer --local" or "ddev build-devcontainer --no-cache"
+## Flags: [{"Name":"local","Usage":"Skip the prebuilt image and build locally"},{"Name":"no-cache","Usage":"Build locally without Docker build cache (forces full rebuild)"}]
 
 set -e
 
+PREBUILT_REPO="wunderio/ddev-agents-devcontainer"
+
 NO_CACHE=""
+LOCAL_ONLY=""
+[ "${DDEV_AGENTS_LOCAL_BUILD:-}" = "1" ] && LOCAL_ONLY="DDEV_AGENTS_LOCAL_BUILD=1"
 for arg in "$@"; do
     case "$arg" in
-        --no-cache) NO_CACHE="--no-cache" ;;
+        --local) LOCAL_ONLY="--local" ;;
+        --no-cache) NO_CACHE="--no-cache"; LOCAL_ONLY="--no-cache" ;;
     esac
 done
 
+# Navigate to project root
+PROJECT_ROOT="$(cd "$(dirname "$0")/../../.." && pwd)"
+cd "$PROJECT_ROOT"
+
+# Get DDEV project name - DDEV sets $DDEV_PROJECT for exec-host hooks automatically.
+# Avoid re-reading it via `ddev describe -j` since DDEV_DEBUG mode injects extra JSON
+# objects into stdout that break jq parsing.
+: "${DDEV_PROJECT:=ddev-agents}"
+IMAGE_NAME="ddev-${DDEV_PROJECT}-devcontainer:latest"
+
+echo "🔍 Project: $DDEV_PROJECT"
+
+# ==============================================================================
+# Resolve version placeholders from .ddev/config.yaml
+# ==============================================================================
+DDEV_CONFIG="$PROJECT_ROOT/.ddev/config.yaml"
+PHP_VERSION=""
+NODE_VERSION=""
+
+if [ -f "$DDEV_CONFIG" ]; then
+    PHP_VERSION=$(grep -E '^\s*php_version:' "$DDEV_CONFIG" | sed -E 's/.*php_version:[[:space:]]*"?([^"]*)"?/\1/' | xargs)
+    NODE_VERSION=$(grep -E '^\s*nodejs_version:' "$DDEV_CONFIG" | sed -E 's/.*nodejs_version:[[:space:]]*"?([^"]*)"?/\1/' | xargs)
+fi
+
+# Defaults if not found
+PHP_VERSION="${PHP_VERSION:-8.3}"
+NODE_VERSION="${NODE_VERSION:-22}"
+
+echo "📍 PHP version: $PHP_VERSION"
+echo "📍 Node.js version: $NODE_VERSION"
+
+# ==============================================================================
+# Prebuilt image from Docker Hub (built by .github/workflows/devcontainer-images.yml)
+# ==============================================================================
+# Any miss — unsupported version, customized build config, registry unreachable —
+# falls through to the local build below.
+NODE_MAJOR="${NODE_VERSION%%.*}"
+IMAGE_TAG_SCRIPT="$PROJECT_ROOT/.devcontainer/scripts/image-tag.sh"
+
+if [ -n "$LOCAL_ONLY" ]; then
+    echo "ℹ️  Skipping prebuilt image ($LOCAL_ONLY), building locally..."
+elif ! [[ "$PHP_VERSION" =~ ^[0-9]+\.[0-9]+$ && "$NODE_MAJOR" =~ ^[0-9]+$ ]]; then
+    echo "ℹ️  No prebuilt image for PHP '$PHP_VERSION' / Node '$NODE_VERSION', building locally..."
+elif ! command -v docker &> /dev/null || [ ! -f "$IMAGE_TAG_SCRIPT" ]; then
+    echo "ℹ️  Cannot resolve prebuilt image, building locally..."
+else
+    CONFIG_HASH=$(bash "$IMAGE_TAG_SCRIPT" "$PROJECT_ROOT/.devcontainer")
+    PREBUILT_IMAGE="${PREBUILT_REPO}:php${PHP_VERSION}-node${NODE_MAJOR}-${CONFIG_HASH}"
+    echo "📦 Pulling prebuilt image: $PREBUILT_IMAGE"
+
+    if docker pull "$PREBUILT_IMAGE"; then
+        docker tag "$PREBUILT_IMAGE" "$IMAGE_NAME"
+        echo "✅ Using prebuilt devcontainer image: $IMAGE_NAME"
+        exit 0
+    elif docker image inspect "$PREBUILT_IMAGE" &> /dev/null; then
+        docker tag "$PREBUILT_IMAGE" "$IMAGE_NAME"
+        echo "⚠️  Pull failed, using previously pulled image: $PREBUILT_IMAGE"
+        exit 0
+    fi
+
+    echo "ℹ️  No prebuilt image found for php${PHP_VERSION}-node${NODE_MAJOR}-${CONFIG_HASH}, building locally..."
+fi
+
+# ==============================================================================
+# Local build
+# ==============================================================================
 echo "🔨 Building devcontainer image..."
 
 echo "⌛️ Checking for required tools..."
@@ -42,42 +113,13 @@ fi
 
 echo "✅ All required tools are available."
 
-# Navigate to project root
-PROJECT_ROOT="$(cd "$(dirname "$0")/../../.." && pwd)"
-cd "$PROJECT_ROOT"
-
-# Get DDEV project name - DDEV sets $DDEV_PROJECT for exec-host hooks automatically.
-# Avoid re-reading it via `ddev describe -j` since DDEV_DEBUG mode injects extra JSON
-# objects into stdout that break jq parsing.
-: "${DDEV_PROJECT:=ddev-agents}"
-
-echo "🔍 Project: $DDEV_PROJECT"
-echo "🔨 Building image: ddev-${DDEV_PROJECT}-devcontainer:latest"
+echo "🔨 Building image: $IMAGE_NAME"
 
 # Check if devcontainer CLI is available
 if ! command -v devcontainer &> /dev/null; then
     echo "⚠️  devcontainer CLI not found. Installing..."
     npm install -g @devcontainers/cli
 fi
-
-# ==============================================================================
-# Resolve version placeholders from .ddev/config.yaml
-# ==============================================================================
-DDEV_CONFIG="$PROJECT_ROOT/.ddev/config.yaml"
-PHP_VERSION=""
-NODE_VERSION=""
-
-if [ -f "$DDEV_CONFIG" ]; then
-    PHP_VERSION=$(grep -E '^\s*php_version:' "$DDEV_CONFIG" | sed -E 's/.*php_version:[[:space:]]*"?([^"]*)"?/\1/' | xargs)
-    NODE_VERSION=$(grep -E '^\s*nodejs_version:' "$DDEV_CONFIG" | sed -E 's/.*nodejs_version:[[:space:]]*"?([^"]*)"?/\1/' | xargs)
-fi
-
-# Defaults if not found
-PHP_VERSION="${PHP_VERSION:-8.3}"
-NODE_VERSION="${NODE_VERSION:-22}"
-
-echo "📍 PHP version: $PHP_VERSION"
-echo "📍 Node.js version: $NODE_VERSION"
 
 # Create a temp copy of build config with resolved placeholders
 BUILD_CONFIG_TEMPLATE="$PROJECT_ROOT/.devcontainer/devcontainer.build.json"
@@ -96,7 +138,7 @@ fi
 # Build using devcontainer CLI - this will install all the features
 devcontainer build \
     --workspace-folder "$PROJECT_ROOT" \
-    --image-name "ddev-${DDEV_PROJECT}-devcontainer:latest" \
+    --image-name "$IMAGE_NAME" \
     --config "$BUILD_CONFIG" \
     $NO_CACHE
 
@@ -110,5 +152,5 @@ if [ $BUILD_EXIT_CODE -ne 0 ]; then
     exit $BUILD_EXIT_CODE
 fi
 
-echo "✅ Devcontainer image built successfully: ddev-${DDEV_PROJECT}-devcontainer:latest"
+echo "✅ Devcontainer image built successfully: $IMAGE_NAME"
 echo "   VS Code will attach to this pre-built image via docker-compose"
