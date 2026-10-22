@@ -110,6 +110,7 @@ If you run agents while still on your host machine, you lose the safety of the i
 -   **Isolated Python Environment**: Based on `mcr.microsoft.com/devcontainers/python:3-bookworm`.
 -   **Integrated Tools**: Pre-installed Node.js, GH CLI, Git and common utilities.
 -   **Dynamic Versions**: PHP and Node.js versions are read from `.ddev/config.yaml` and injected at build time.
+-   **Prebuilt Images**: Ready-made images for every PHP version in [wunderio/silta-images](https://github.com/wunderio/silta-images) × supported Node.js majors are pulled from Docker Hub, so `ddev start` skips the slow local build (see [Prebuilt Devcontainer Images](#prebuilt-devcontainer-images)).
 -   **SSH-Based Tool Execution**: MCP tools execute commands in the DDEV web container via SSH (no Docker socket access).
 -   **MCP Tool Configs**: Pre-configured tools for Drush, Composer, Drupal MCP proxy, and log access (`.agents/tools-config/`).
 -   **GitHub Copilot (Agent Mode)**: Includes the `copilot` CLI extension.
@@ -125,6 +126,22 @@ The agents container communicates with the DDEV web container via SSH:
 -   **Automatic User Detection**: The DDEV user is detected from `/var/www/html` ownership in the web container
 -   **No Docker Socket**: The agents container has no access to the Docker daemon — all command execution goes through SSH
 -   **Security Hardened**: All Linux capabilities dropped, privilege escalation disabled
+
+### Prebuilt Devcontainer Images
+
+The `pre-start` hook (`ddev build-devcontainer`) first tries to pull a prebuilt image from Docker Hub and only builds locally when none matches:
+
+```
+wunderio/ddev-agents-devcontainer:php<PHP>-node<NODE_MAJOR>-<HASH>
+```
+
+-   **Versions**: images are built for every PHP version that [wunderio/silta-images](https://github.com/wunderio/silta-images) provides (`silta-php-fpm`) × every non-EOL Node.js major it provides (`silta-node`, 20+), for both `amd64` and `arm64`. The version lists are re-read from silta-images on every CI run.
+-   **Hash**: a hash of `.devcontainer/devcontainer.build.json` and `.devcontainer/features/` (computed by `.devcontainer/scripts/image-tag.sh`). Each addon version therefore pulls the images built from its own config, and a project that has customized those files automatically falls back to a local build.
+-   **Freshness**: images are rebuilt weekly (picking up new Claude Code / Copilot releases and security updates) and on every change to `.devcontainer/` on `main`. `ddev restart` pulls the latest rebuild.
+-   **Fallback**: if no matching image exists (unsupported PHP/Node version, customized config, Docker Hub unreachable with nothing cached), the image is built locally exactly as before — this needs Node.js 20+ and `jq` on the host.
+-   **Opting out**: run `ddev build-devcontainer --local` (or `--no-cache` for a full rebuild), or set `DDEV_AGENTS_LOCAL_BUILD=1` in your host environment to always build locally.
+
+Images are published by `.github/workflows/devcontainer-images.yml`, which needs the `DOCKER_USER` / `DOCKER_PASSWORD` repository secrets.
 
 ### MCP Tools
 
@@ -262,7 +279,7 @@ ddev claude --help
 -   The host directory is created by a `pre-start` hook so it exists before Docker bind-mounts it (avoids root-owned directories on Linux).
 -   State is **per-project**: each DDEV project has its own directory under `~/.ddev-agents/projects/`, so chat history, TODOs, and per-project settings stay isolated. Log in once per project; auth then persists across container rebuilds.
 -   Auth survives container rebuilds (`ddev restart`) because it lives on the host, not inside the container.
--   PHP, Composer, and Claude Code are installed via devcontainer features during `ddev build-devcontainer`. The Claude Code binary is baked into the image — run `ddev build-devcontainer` to update it.
+-   PHP, Composer, and Claude Code are installed via devcontainer features and baked into the image. The prebuilt images are refreshed weekly, so `ddev restart` picks up newer Claude Code releases; with a local build, run `ddev build-devcontainer --local` to update it.
 
 ### Security
 
