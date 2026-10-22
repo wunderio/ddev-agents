@@ -1,0 +1,60 @@
+#!/usr/bin/env bash
+#ddev-generated
+## Description: List (or with --yes delete) ddev-agents state left behind by removed worktrees
+## Usage: agents-worktree-prune [--yes]
+## Example: "ddev agents-worktree-prune" or "ddev agents-worktree-prune --yes"
+## Flags: [{"Name":"yes","Shorthand":"y","Usage":"Delete what is listed instead of only listing it"}]
+
+# ddev fire-worktree-remove / fire-worktree-prune delete a worktree's DDEV
+# project, containers and volumes, but not what ddev-agents keeps outside
+# them: the Claude Code state directory (~/.ddev-agents/projects/<project>,
+# which holds a copy of your Claude login) and the
+# ddev-<project>-devcontainer:latest image tag. This removes both for every
+# worktree whose checkout is gone or no longer has a worktree DDEV config.
+# Only state directories the worktree pre-start hook recorded (a `worktree`
+# file) are considered, so main-checkout projects are never touched.
+
+set -eu
+
+YES=false
+for arg in "$@"; do
+    case "$arg" in
+        -y | --yes) YES=true ;;
+        -h | --help)
+            sed -n 's/^## //p' "$0"
+            exit 0
+            ;;
+        *)
+            echo "Unknown argument: $arg" >&2
+            exit 1
+            ;;
+    esac
+done
+
+STATE_ROOT="$HOME/.ddev-agents/projects"
+found=0
+
+for record in "$STATE_ROOT"/*/worktree; do
+    [ -f "$record" ] || continue
+    dir=$(dirname "$record")
+    name=$(basename "$dir")
+    path=$(sed -n 's/^path=//p' "$record")
+    if [ -n "$path" ] && [ -f "$path/.ddev/config.worktree.local.yaml" ]; then
+        continue
+    fi
+    found=$((found + 1))
+    if [ "$YES" = true ]; then
+        rm -rf "$dir"
+        docker image rm "ddev-${name}-devcontainer:latest" >/dev/null 2>&1 || true
+        echo "🗑  Deleted agents state for $name (${path:-unknown path})"
+    else
+        echo "$name  ${path:-unknown path}"
+    fi
+done
+
+if [ "$found" -eq 0 ]; then
+    echo "✅ No agents state left behind by removed worktrees."
+elif [ "$YES" = false ]; then
+    echo ""
+    echo "👉 Run 'ddev agents-worktree-prune --yes' to delete the state above (Claude login copies, chat history, image tags)."
+fi

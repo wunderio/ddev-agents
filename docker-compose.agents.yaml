@@ -35,6 +35,9 @@ services:
       - ${HOME}/.ddev-agents/projects/${DDEV_PROJECT}/claude:/home/vscode/.claude-state
       - ./copilot-managed-config.json:/home/vscode/.copilot-managed-config.json:ro
       - ./claude-managed-settings.json:/etc/claude-code/managed-settings.json:ro
+      # Managed CLAUDE.md: environment + git worktree rules every Claude Code
+      # session in this container loads (see .agents/WORKTREES.md for details).
+      - ./claude-managed-instructions.md:/etc/claude-code/CLAUDE.md:ro
     working_dir: /workspace
     environment:
       - DDEV_PROJECT=${DDEV_PROJECT}

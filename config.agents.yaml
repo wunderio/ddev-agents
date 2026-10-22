@@ -5,11 +5,17 @@
 
 hooks:
   pre-start:
-    - exec-host: .ddev/commands/host/build-devcontainer
+    # In a ddev-fire-worktrees worktree: reuse a matching agents image instead
+    # of rebuilding it, and write the worktree's agents overlay (see below).
+    - exec-host: .ddev/commands/host/build-devcontainer --reuse-in-worktree
     # Ensure the Claude auth host directory exists before Docker bind-mounts it.
     # If missing, Docker creates it as root on Linux, breaking write access for
     # the vscode user inside the container.
     - exec-host: mkdir -p "$HOME/.ddev-agents/projects/$DDEV_PROJECT/claude" && chmod 700 "$HOME/.ddev-agents/projects/$DDEV_PROJECT/claude"
+    # Worktrees only (no-op otherwise): mount the shared Git directory read-only
+    # and copy the main checkout's Claude login. Must run before DDEV renders the
+    # Compose files, which it does right after the pre-start hooks.
+    - exec-host: bash .ddev/scripts/agents-worktree.sh
 
   post-start:
     - exec-host: .ddev/commands/host/set-up
